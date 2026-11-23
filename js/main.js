@@ -1304,6 +1304,67 @@ document.addEventListener("requestRender", () => {
 
 document.addEventListener("imageLoaded", syncImageScaleControl);
 
+// 기기별 편집 결과 미리보기
+const previewModal = $("devicePreviewModal");
+const previewFrame = $("previewFrame");
+const previewImage = $("previewImage");
+const previewModeButtons = document.querySelectorAll("[data-preview]");
+let previewObjectUrl = null;
+let previewRequestId = 0;
+
+function setPreviewMode(mode) {
+  previewFrame.className = `preview-frame ${mode}`;
+  previewModeButtons.forEach(button => {
+    button.setAttribute("aria-pressed", String(button.dataset.preview === mode));
+  });
+
+  const ratio = Math.min(1.91, Math.max(0.8, canvas.width / canvas.height));
+  previewFrame.style.setProperty("--preview-ratio", `${ratio} / 1`);
+}
+
+async function updatePreviewImage() {
+  const requestId = ++previewRequestId;
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+  if (!blob || requestId !== previewRequestId) return;
+
+  if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+  previewObjectUrl = URL.createObjectURL(blob);
+  previewImage.src = previewObjectUrl;
+}
+
+function closeDevicePreview() {
+  previewModal.hidden = true;
+  document.body.style.overflow = "";
+  previewRequestId++;
+  if (previewObjectUrl) {
+    URL.revokeObjectURL(previewObjectUrl);
+    previewObjectUrl = null;
+  }
+  previewImage.removeAttribute("src");
+}
+
+$("previewBtn").addEventListener("click", async () => {
+  previewModal.hidden = false;
+  document.body.style.overflow = "hidden";
+  setPreviewMode("phone");
+  try {
+    await updatePreviewImage();
+  } catch {
+    setStatus("미리보기 이미지를 만들지 못했습니다.", true);
+  }
+});
+
+$("closePreviewBtn").addEventListener("click", closeDevicePreview);
+previewModal.addEventListener("click", event => {
+  if (event.target === previewModal) closeDevicePreview();
+});
+previewModeButtons.forEach(button => {
+  button.addEventListener("click", () => setPreviewMode(button.dataset.preview));
+});
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && !previewModal.hidden) closeDevicePreview();
+});
+
 // ======================================
 // 18. 초기 실행
 // ======================================

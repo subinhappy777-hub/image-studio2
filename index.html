@@ -69,6 +69,7 @@
             </select>
           </label>
           <span>실시간 미리보기</span>
+          <button id="previewBtn" class="secondary" type="button">기기 미리보기</button>
         </div>
 
         <div class="canvas-stage">
@@ -314,6 +315,31 @@
       </div>
 
     </footer>
+
+    <div id="devicePreviewModal" class="preview-modal" hidden>
+      <section class="preview-dialog" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
+        <header class="preview-header">
+          <h2 id="previewTitle">기기별 미리보기</h2>
+          <button id="closePreviewBtn" type="button" aria-label="미리보기 닫기">×</button>
+        </header>
+        <nav class="preview-modes" aria-label="미리보기 형식">
+          <button type="button" data-preview="phone" aria-pressed="true">휴대폰</button>
+          <button type="button" data-preview="tablet" aria-pressed="false">태블릿</button>
+          <button type="button" data-preview="instagram" aria-pressed="false">Instagram 게시물</button>
+          <button type="button" data-preview="story" aria-pressed="false">스토리</button>
+        </nav>
+        <div class="preview-stage">
+          <div id="previewFrame" class="preview-frame phone">
+            <div class="preview-device-top" aria-hidden="true"><span>9:41</span><span>●●● ▰</span></div>
+            <div class="preview-social-header"><span class="preview-avatar">IS</span><strong>image_studio</strong><span>•••</span></div>
+            <img id="previewImage" alt="현재 편집 결과 미리보기">
+            <div class="preview-social-footer" aria-hidden="true">♡　♡　↗　　⌂</div>
+            <div class="preview-device-bottom" aria-hidden="true"></div>
+          </div>
+        </div>
+        <p class="preview-caption">현재 캔버스의 편집 결과를 화면 비율에 맞춰 미리 봅니다.</p>
+      </section>
+    </div>
 
     <!-- 상태 메시지 -->
     <p id="status" class="status" role="status" aria-live="polite">
