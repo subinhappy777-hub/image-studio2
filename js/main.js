@@ -1234,6 +1234,7 @@ function syncSplitLayoutUI() {
     btn.classList.toggle("selected", Number(btn.dataset.slot) === selectedSplitSlotIndex);
     btn.classList.toggle("filled", !!state.splitImages[Number(btn.dataset.slot)]);
   });
+  splitOverlay.classList.toggle("canvas-editing", ["image", "draw", "sticker"].includes(activeTool));
   splitOverlay.classList.toggle("image-editing", activeTool === "image");
 }
 
