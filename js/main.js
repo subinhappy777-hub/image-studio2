@@ -40,6 +40,7 @@ const $ = id => document.getElementById(id);
 let activeTool = "text";
 let drag = null;
 let selectedStickerData = null;
+let selectedSplitSlotIndex = null;
 
 const history = [];
 const HISTORY_LIMIT = 30;
@@ -65,7 +66,8 @@ function snapshot() {
 
     // 사진 분할 상태 저장
     splitLayout: state.splitLayout,
-    splitImages: [...(state.splitImages || [])]
+    splitImages: [...(state.splitImages || [])],
+    splitImageTransforms: structuredClone(state.splitImageTransforms || [])
   };
 }
 
@@ -93,7 +95,7 @@ function undo() {
   // ★ 이미지/화면비 설정 복원 + UI 동기화
   $("aspectRatio").value = state.aspectRatio;
   $("imageScale").value =
-    String(Math.round(state.imageScale * 100));
+    String(Math.round(getSelectedImageScale() * 100));
 
   $("bgColor").value = state.background;
   $("frameType").value = state.frameType || "none";
@@ -104,6 +106,7 @@ function undo() {
 
   // 사진 분할 레이아웃 화면 복원
   syncSplitLayoutUI();
+  syncImageScaleControl();
 
   // ★ 캔버스 크기 복원 (내부에서 render() 호출됨)
   updateCanvasSize();
@@ -195,9 +198,13 @@ document.querySelectorAll(".tool-btn").forEach(button => {
       canvas.style.cursor = "crosshair";
     } else if (tool === "text") {
       canvas.style.cursor = "text";
+    } else if (tool === "image") {
+      canvas.style.cursor = "grab";
     } else {
       canvas.style.cursor = "default";
     }
+
+    if (typeof splitOverlay !== "undefined") syncSplitLayoutUI();
 
     setStatus(
       `"${button.querySelector("span").textContent}" 도구가 활성화되었습니다.`
@@ -708,9 +715,42 @@ $("bgColor").addEventListener("input", e => {
 });
 
 // ★ 이미지 크기: 슬라이더 잡을 때 1회 기록
-bindUndoStart($("imageScale"), () => !!state.image);
+function isSplitMode() {
+  return [2, 4, 9].includes(state.splitLayout);
+}
+
+function getSelectedImageScale() {
+  if (isSplitMode() && selectedSplitSlotIndex !== null) {
+    return state.splitImageTransforms?.[selectedSplitSlotIndex]?.scale ?? 1;
+  }
+  return state.imageScale;
+}
+
+function syncImageScaleControl() {
+  const input = $("imageScale");
+  const label = $("imageScaleLabel");
+  const hasSplitSelection = isSplitMode() && selectedSplitSlotIndex !== null && !!state.splitImages[selectedSplitSlotIndex];
+  const hasImage = hasSplitSelection || (!isSplitMode() && !!state.image);
+
+  input.disabled = !hasImage;
+  input.value = String(Math.round(getSelectedImageScale() * 100));
+  label.textContent = hasSplitSelection
+    ? `${selectedSplitSlotIndex + 1}번 칸 사진 크기`
+    : "사진 크기";
+}
+
+bindUndoStart($("imageScale"), () =>
+  isSplitMode()
+    ? selectedSplitSlotIndex !== null && !!state.splitImages[selectedSplitSlotIndex]
+    : !!state.image
+);
 $("imageScale").addEventListener("input", e => {
-  state.imageScale = Number(e.target.value) / 100;
+  const scale = Number(e.target.value) / 100;
+  if (isSplitMode() && selectedSplitSlotIndex !== null && state.splitImages[selectedSplitSlotIndex]) {
+    state.splitImageTransforms[selectedSplitSlotIndex].scale = scale;
+  } else if (state.image) {
+    state.imageScale = scale;
+  }
   render();
 });
 
@@ -888,16 +928,43 @@ canvas.addEventListener("pointerdown", event => {
   }
 
   // 이미지 도구
-  if (activeTool === "image" && state.image) {
-    remember();
+  if (activeTool === "image") {
+    if (isSplitMode()) {
+      const slot = getSplitSlotAt(point);
+      if (slot && state.splitImages[slot.index]) {
+        selectedSplitSlotIndex = slot.index;
+        syncSplitLayoutUI();
+        syncImageScaleControl();
+        remember();
 
-    drag = {
-      type: "image",
-      offsetX: point.x - state.imageX,
-      offsetY: point.y - state.imageY
-    };
+        const transform = state.splitImageTransforms[slot.index];
+        const centerX = slot.x + slot.width * transform.x / 100;
+        const centerY = slot.y + slot.height * transform.y / 100;
+        drag = {
+          type: "splitImage",
+          target: transform,
+          slot,
+          offsetX: point.x * canvas.width / 100 - centerX,
+          offsetY: point.y * canvas.height / 100 - centerY
+        };
 
-    canvas.setPointerCapture(event.pointerId);
+        canvas.setPointerCapture(event.pointerId);
+        canvas.style.cursor = "grabbing";
+        render();
+      }
+      return;
+    }
+
+    if (state.image) {
+      remember();
+      drag = {
+        type: "image",
+        offsetX: point.x - state.imageX,
+        offsetY: point.y - state.imageY
+      };
+      canvas.setPointerCapture(event.pointerId);
+      canvas.style.cursor = "grabbing";
+    }
     return;
   }
 });
@@ -940,6 +1007,11 @@ canvas.addEventListener("pointermove", event => {
   } else if (drag.type === "image") {
     state.imageX = point.x - drag.offsetX;
     state.imageY = point.y - drag.offsetY;
+  } else if (drag.type === "splitImage") {
+    const pixelX = point.x * canvas.width - drag.offsetX;
+    const pixelY = point.y * canvas.height - drag.offsetY;
+    drag.target.x = (pixelX - drag.slot.x) / drag.slot.width * 100;
+    drag.target.y = (pixelY - drag.slot.y) / drag.slot.height * 100;
   }
 
   render();
@@ -947,6 +1019,7 @@ canvas.addEventListener("pointermove", event => {
 
 function stopDrag() {
   drag = null;
+  canvas.style.cursor = activeTool === "image" ? "grab" : "default";
 }
 
 canvas.addEventListener("pointerup", stopDrag);
@@ -1049,12 +1122,39 @@ function setLayout(layout) {
   state.splitLayout = layout;
 
   state.splitImages = Array(9).fill(null);
+  state.splitImageTransforms = Array.from(
+    { length: 9 },
+    () => ({ x: 50, y: 50, scale: 1 })
+  );
+  selectedSplitSlotIndex = null;
 
   syncSplitLayoutUI();
+  syncImageScaleControl();
 
   render();
 
   setStatus(`${layout}칸 사진 분할 레이아웃으로 변경했습니다.`);
+}
+
+function getSplitSlotAt(point) {
+  const cols = state.splitLayout === 9 ? 3 : 2;
+  const rows = state.splitLayout === 2 ? 1 : cols;
+  const gap = state.splitLayout === 9 ? 6 : 10;
+  const width = (canvas.width - gap * (cols - 1)) / cols;
+  const height = (canvas.height - gap * (rows - 1)) / rows;
+  const x = point.x * canvas.width / 100;
+  const y = point.y * canvas.height / 100;
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const slotX = col * (width + gap);
+      const slotY = row * (height + gap);
+      if (x >= slotX && x <= slotX + width && y >= slotY && y <= slotY + height) {
+        return { index: row * cols + col, x: slotX, y: slotY, width, height };
+      }
+    }
+  }
+  return null;
 }
 
 // 사진 분할 레이아웃 화면 동기화
@@ -1095,7 +1195,10 @@ function syncSplitLayoutUI() {
   splitZoneBtns.forEach(btn => {
     btn.hidden = Number(btn.dataset.slot) >= (layout === 9 ? 9 : layout === 4 ? 4 : layout === 2 ? 2 : 0);
     btn.textContent = `＋ ${Number(btn.dataset.slot) + 1}번 칸 사진 추가`;
+    btn.classList.toggle("selected", Number(btn.dataset.slot) === selectedSplitSlotIndex);
+    btn.classList.toggle("filled", !!state.splitImages[Number(btn.dataset.slot)]);
   });
+  splitOverlay.classList.toggle("image-editing", activeTool === "image");
 }
 
 $("layout1Btn")?.addEventListener("click", () => setLayout(1));
@@ -1125,6 +1228,10 @@ slotFileInput?.addEventListener("change", e => {
     remember();
 
     state.splitImages[currentSlotIndex] = img;
+    state.splitImageTransforms[currentSlotIndex] = { x: 50, y: 50, scale: 1 };
+    selectedSplitSlotIndex = currentSlotIndex;
+    syncSplitLayoutUI();
+    syncImageScaleControl();
 
     render();
 
@@ -1149,18 +1256,23 @@ slotFileInput?.addEventListener("change", e => {
 // ======================================
 
 document.addEventListener("splitLayoutChanged", () => {
+  selectedSplitSlotIndex = null;
   syncSplitLayoutUI();
+  syncImageScaleControl();
 });
 
 document.addEventListener("requestRender", () => {
   render();
 });
 
+document.addEventListener("imageLoaded", syncImageScaleControl);
+
 // ======================================
 // 18. 초기 실행
 // ======================================
 
 $("frameType").value = state.frameType || "none";
+syncImageScaleControl();
 
 renderStickerPanel();
 restoreCustomFonts();

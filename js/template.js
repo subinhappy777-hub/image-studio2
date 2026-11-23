@@ -165,7 +165,12 @@ function getCurrentState() {
     splitLayout: state.splitLayout || 1,
     splitImages: (state.splitImages || []).map(img =>
       imageToData(img)
-    )
+    ),
+    splitImageTransforms: (state.splitImageTransforms || []).map(transform => ({
+      x: transform?.x ?? 50,
+      y: transform?.y ?? 50,
+      scale: transform?.scale ?? 1
+    }))
   };
 }
 
@@ -274,6 +279,17 @@ export async function loadTemplate(id) {
       paddedSplitImages[i] = splitImages[i] || null;
     }
 
+    const splitImageTransforms = Array.from({ length: 9 }, (_, index) => {
+      const transform = template.splitImageTransforms?.[index];
+      return {
+        x: Number.isFinite(transform?.x) ? transform.x : 50,
+        y: Number.isFinite(transform?.y) ? transform.y : 50,
+        scale: Number.isFinite(transform?.scale)
+          ? Math.min(3, Math.max(0.2, transform.scale))
+          : 1
+      };
+    });
+
     // ======================================
     // 이미지 복원 성공 후 상태 변경
     // ======================================
@@ -354,6 +370,7 @@ export async function loadTemplate(id) {
         : 1;
 
     state.splitImages = paddedSplitImages;
+    state.splitImageTransforms = splitImageTransforms;
 
     currentTemplateId = id;
 
@@ -370,6 +387,7 @@ export async function loadTemplate(id) {
     $("imageScale").value = String(
       Math.round(state.imageScale * 100)
     );
+    $("imageScale").disabled = !image && !paddedSplitImages.some(Boolean);
 
     // 이미지 업로드 안내 표시 여부
     $("uploadPlaceholder").style.display =

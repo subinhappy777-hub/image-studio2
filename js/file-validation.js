@@ -182,6 +182,8 @@ export async function handleFile(file, onBeforeApply = null) {
 
     render();
 
+    document.dispatchEvent(new Event("imageLoaded"));
+
     // ======================================
     // 2-9. 완료 메시지
     // ======================================

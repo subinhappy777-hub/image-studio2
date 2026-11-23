@@ -23,7 +23,8 @@ export const state = {
   background: "#222b42",
 
   splitLayout: 1,
-  splitImages: Array(9).fill(null)
+  splitImages: Array(9).fill(null),
+  splitImageTransforms: Array.from({ length: 9 }, () => ({ x: 50, y: 50, scale: 1 }))
 };
 
 // ======================================
@@ -593,34 +594,34 @@ function drawImage() {
       for (let c = 0; c < cols; c++) {
         const index = r * cols + c;
         const img = state.splitImages[index];
+        const transform = state.splitImageTransforms?.[index] || { x: 50, y: 50, scale: 1 };
 
         const dx = c * (pieceW + gap);
         const dy = r * (pieceH + gap);
 
         if (!img) continue;
 
-        const imgRatio = img.naturalWidth / img.naturalHeight;
-        const boxRatio = pieceW / pieceH;
+        const fit = Math.max(
+          pieceW / img.naturalWidth,
+          pieceH / img.naturalHeight
+        ) * (Number.isFinite(transform.scale) ? transform.scale : 1);
+        const imageWidth = img.naturalWidth * fit;
+        const imageHeight = img.naturalHeight * fit;
+        const centerX = dx + pieceW * (Number.isFinite(transform.x) ? transform.x : 50) / 100;
+        const centerY = dy + pieceH * (Number.isFinite(transform.y) ? transform.y : 50) / 100;
 
-        let sx, sy, sw, sh;
-
-        if (imgRatio > boxRatio) {
-          sh = img.naturalHeight;
-          sw = sh * boxRatio;
-          sx = (img.naturalWidth - sw) / 2;
-          sy = 0;
-        } else {
-          sw = img.naturalWidth;
-          sh = sw / boxRatio;
-          sx = 0;
-          sy = (img.naturalHeight - sh) / 2;
-        }
-
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(dx, dy, pieceW, pieceH);
+        ctx.clip();
         ctx.drawImage(
           img,
-          sx, sy, sw, sh,
-          dx, dy, pieceW, pieceH
+          centerX - imageWidth / 2,
+          centerY - imageHeight / 2,
+          imageWidth,
+          imageHeight
         );
+        ctx.restore();
       }
     }
 
@@ -643,7 +644,12 @@ function drawImage() {
   const x = width * state.imageX / 100 - imageWidth / 2;
   const y = height * state.imageY / 100 - imageHeight / 2;
 
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, width, height);
+  ctx.clip();
   ctx.drawImage(img, x, y, imageWidth, imageHeight);
+  ctx.restore();
 }
 
 // ======================================
