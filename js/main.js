@@ -772,6 +772,15 @@ function updateFrameControls() {
   $("solidFrameControls").hidden = state.frameType !== "solid";
 }
 
+function updateGradientControls() {
+  $("gradientControls").hidden = $("brushColorMode").value !== "gradient";
+}
+
+$("brushColorMode").addEventListener("change", updateGradientControls);
+$("gradientAngle").addEventListener("input", e => {
+  $("gradientAngleValue").textContent = `${e.target.value}°`;
+});
+
 bindUndoStart($("frameColor"));
 $("frameColor").addEventListener("input", e => {
   state.frameColor = e.target.value;
@@ -879,6 +888,9 @@ canvas.addEventListener("pointerdown", event => {
     const stroke = {
       points: [point],
       color: $("brushColor").value,
+      gradient: $("brushColorMode").value === "gradient",
+      colorEnd: $("brushColorEnd").value,
+      gradientAngle: Number($("gradientAngle").value),
       size: Number($("brushSize").value),
       type: $("brushType").value
     };
@@ -1297,6 +1309,7 @@ document.addEventListener("imageLoaded", syncImageScaleControl);
 
 $("frameType").value = state.frameType || "none";
 updateFrameControls();
+updateGradientControls();
 syncImageScaleControl();
 
 renderStickerPanel();

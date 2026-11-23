@@ -167,6 +167,18 @@
           <label for="brushColor">펜 색상</label>
           <input id="brushColor" type="color" value="#ffda67">
 
+          <label for="brushColorMode">색상 방식</label>
+          <select id="brushColorMode">
+            <option value="solid">단색</option>
+            <option value="gradient">그라데이션</option>
+          </select>
+          <div id="gradientControls" hidden>
+            <label for="brushColorEnd">그라데이션 끝 색상</label>
+            <input id="brushColorEnd" type="color" value="#ec4899">
+            <label for="gradientAngle">방향 <output id="gradientAngleValue">0°</output></label>
+            <input id="gradientAngle" type="range" min="0" max="360" value="0">
+          </div>
+
           <label for="brushSize">펜 굵기</label>
           <input id="brushSize" type="range" min="2" max="40" value="6">
 

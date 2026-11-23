@@ -808,7 +808,45 @@ function drawStrokes() {
     }
 
     ctx.lineWidth = stroke.size;
-    ctx.strokeStyle = stroke.color;
+
+    let strokeStyle = stroke.color;
+    if (stroke.gradient && stroke.colorEnd) {
+      const points = stroke.points.map(point => ({
+        x: point.x * canvas.width / 100,
+        y: point.y * canvas.height / 100
+      }));
+      const bounds = points.reduce((box, point) => ({
+        left: Math.min(box.left, point.x),
+        right: Math.max(box.right, point.x),
+        top: Math.min(box.top, point.y),
+        bottom: Math.max(box.bottom, point.y)
+      }), {
+        left: Infinity,
+        right: -Infinity,
+        top: Infinity,
+        bottom: -Infinity
+      });
+      const centerX = (bounds.left + bounds.right) / 2;
+      const centerY = (bounds.top + bounds.bottom) / 2;
+      const radius = Math.max(
+        1,
+        Math.hypot(bounds.right - bounds.left, bounds.bottom - bounds.top) / 2
+      );
+      const angle = (Number(stroke.gradientAngle) || 0) * Math.PI / 180;
+      const offsetX = Math.cos(angle) * radius;
+      const offsetY = Math.sin(angle) * radius;
+      const gradient = ctx.createLinearGradient(
+        centerX - offsetX,
+        centerY - offsetY,
+        centerX + offsetX,
+        centerY + offsetY
+      );
+      gradient.addColorStop(0, stroke.color);
+      gradient.addColorStop(1, stroke.colorEnd);
+      strokeStyle = gradient;
+    }
+
+    ctx.strokeStyle = strokeStyle;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
