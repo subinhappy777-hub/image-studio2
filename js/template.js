@@ -145,6 +145,8 @@ function getCurrentState() {
     aspectRatio: state.aspectRatio,
 
     frameType: state.frameType || "none",
+    frameColor: state.frameColor,
+    frameWidth: state.frameWidth,
 
     texts: clone(state.texts),
 
@@ -302,6 +304,7 @@ export async function loadTemplate(id) {
 
     const allowedFrames = [
       "none",
+      "solid",
       "heart",
       "sparkle",
       "lace",
@@ -320,6 +323,14 @@ export async function loadTemplate(id) {
       allowedFrames.includes(template.frameType)
         ? template.frameType
         : "none";
+    state.frameColor =
+      /^#[0-9a-f]{6}$/i.test(template.frameColor || "")
+        ? template.frameColor
+        : "#f472b6";
+    state.frameWidth =
+      Number.isFinite(template.frameWidth)
+        ? Math.min(30, Math.max(1, template.frameWidth))
+        : 8;
 
     state.texts = clone(
       Array.isArray(template.texts)
@@ -383,6 +394,10 @@ export async function loadTemplate(id) {
     $("bgColor").value = state.background;
 
     $("frameType").value = state.frameType;
+    $("frameColor").value = state.frameColor;
+    $("frameWidth").value = String(state.frameWidth);
+    $("frameWidthValue").textContent = String(state.frameWidth);
+    $("solidFrameControls").hidden = state.frameType !== "solid";
 
     $("imageScale").value = String(
       Math.round(state.imageScale * 100)

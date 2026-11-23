@@ -63,6 +63,8 @@ function snapshot() {
 
     background: state.background,
     frameType: state.frameType || "none",
+    frameColor: state.frameColor,
+    frameWidth: state.frameWidth,
 
     // 사진 분할 상태 저장
     splitLayout: state.splitLayout,
@@ -99,6 +101,10 @@ function undo() {
 
   $("bgColor").value = state.background;
   $("frameType").value = state.frameType || "none";
+  $("frameColor").value = state.frameColor;
+  $("frameWidth").value = String(state.frameWidth);
+  $("frameWidthValue").textContent = String(state.frameWidth);
+  updateFrameControls();
 
   // ★ 선택 컨트롤 초기화
   $("stickerSize").value = "120";
@@ -758,6 +764,24 @@ $("imageScale").addEventListener("input", e => {
 $("frameType").addEventListener("change", e => {
   remember();
   state.frameType = e.target.value;
+  updateFrameControls();
+  render();
+});
+
+function updateFrameControls() {
+  $("solidFrameControls").hidden = state.frameType !== "solid";
+}
+
+bindUndoStart($("frameColor"));
+$("frameColor").addEventListener("input", e => {
+  state.frameColor = e.target.value;
+  render();
+});
+
+bindUndoStart($("frameWidth"));
+$("frameWidth").addEventListener("input", e => {
+  state.frameWidth = Number(e.target.value);
+  $("frameWidthValue").textContent = String(state.frameWidth);
   render();
 });
 
@@ -1272,6 +1296,7 @@ document.addEventListener("imageLoaded", syncImageScaleControl);
 // ======================================
 
 $("frameType").value = state.frameType || "none";
+updateFrameControls();
 syncImageScaleControl();
 
 renderStickerPanel();

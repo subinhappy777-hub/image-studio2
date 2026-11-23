@@ -293,6 +293,11 @@ canvas {
   cursor: pointer;
 }
 
+#solidFrameControls:not([hidden]) {
+  display: grid;
+  gap: 10px;
+}
+
 input[type="range"] {
   width: 100%;
 }

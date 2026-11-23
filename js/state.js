@@ -8,6 +8,8 @@ export const state = {
   zoomLevel: 1,
 
   frameType: "none",
+  frameColor: "#f472b6",
+  frameWidth: 8,
 
   texts: [],
   drawings: [],
@@ -995,7 +997,17 @@ function drawFrame() {
 
   ctx.save();
 
-  if (type === "heart") {
+  if (type === "solid") {
+    const lineWidth = unit * Math.max(1, Math.min(30, state.frameWidth || 8)) / 1000;
+    ctx.strokeStyle = state.frameColor || "#f472b6";
+    ctx.lineWidth = lineWidth;
+    ctx.strokeRect(
+      lineWidth / 2,
+      lineWidth / 2,
+      w - lineWidth,
+      h - lineWidth
+    );
+  } else if (type === "heart") {
     ctx.strokeStyle = "#ff7eb6";
     ctx.lineWidth = unit * 0.025;
     ctx.strokeRect(

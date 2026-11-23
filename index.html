@@ -247,12 +247,19 @@
           <label for="frameType">사진 프레임</label>
           <select id="frameType">
             <option value="none">프레임 없음</option>
+            <option value="solid">단색 테두리</option>
             <option value="heart">💗 핑크 하트</option>
             <option value="sparkle">✨ 반짝이</option>
             <option value="lace">🎀 러블리 레이스</option>
             <option value="polaroid">📸 폴라로이드</option>
             <option value="y2k">💿 Y2K 레트로</option>
           </select>
+          <div id="solidFrameControls" hidden>
+            <label for="frameColor">테두리 색상</label>
+            <input id="frameColor" type="color" value="#f472b6">
+            <label for="frameWidth">테두리 두께 <span id="frameWidthValue">8</span></label>
+            <input id="frameWidth" type="range" min="1" max="30" value="8">
+          </div>
           <p class="hint">원하는 프레임을 선택하면 사진에 바로 적용됩니다.<br>글리터 펜과 스티커를 함께 사용해 나만의 얼짱 감성 사진을 꾸며 보세요.</p>
 
         </div>
