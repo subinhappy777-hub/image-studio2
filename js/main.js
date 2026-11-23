@@ -802,7 +802,23 @@ const fileInput = $("fileInput");
 const uploadPlaceholder = $("uploadPlaceholder");
 const btnInput = $("btnInput");
 
-btnInput?.addEventListener("click", () => fileInput?.click());
+btnInput?.addEventListener("click", () => {
+  if (isSplitMode()) {
+    const emptySlotIndex = state.splitImages.findIndex(image => !image);
+    const targetSlotIndex = selectedSplitSlotIndex ?? emptySlotIndex;
+
+    if (targetSlotIndex < 0) {
+      setStatus("사진을 추가하거나 바꿀 칸의 ＋ 버튼을 눌러 주세요.", true);
+      return;
+    }
+
+    currentSlotIndex = targetSlotIndex;
+    slotFileInput?.click();
+    return;
+  }
+
+  fileInput?.click();
+});
 
 uploadPlaceholder?.addEventListener("click", () => fileInput?.click());
 
@@ -1349,6 +1365,9 @@ splitZoneBtns.forEach(btn => {
     e.stopPropagation();
 
     currentSlotIndex = Number(btn.dataset.slot);
+    selectedSplitSlotIndex = currentSlotIndex;
+    syncSplitLayoutUI();
+    syncImageScaleControl();
     slotFileInput.click();
   });
 });
