@@ -71,6 +71,7 @@ button {
 .workspace {
   display: grid;
   grid-template-columns: 78px minmax(0, 1fr) 300px; /* 우측 패널 살짝 넓힘 */
+  height: min(78vh, 860px);
   min-height: 580px;
   background: white;
   border: 1px solid #dde4f1;
@@ -119,6 +120,7 @@ button {
    5. 중앙 캔버스 영역
    ====================================== */
 .canvas-zone {
+  min-height: 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -243,9 +245,13 @@ canvas {
    7. 오른쪽 설정 패널 (공통)
    ====================================== */
 .options {
+  min-height: 0;
   padding: 22px;
   border-left: 1px solid #e6ebf4;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
 }
 
 .options h2 {
@@ -561,10 +567,12 @@ hr.divider {
    ====================================== */
 @media (max-width: 850px) {
   .workspace {
+    height: auto;
     grid-template-columns: 65px minmax(0, 1fr);
   }
   .options {
     grid-column: 1 / -1;
+    max-height: min(65vh, 620px);
     border-left: none;
     border-top: 1px solid #e6ebf4;
   }
