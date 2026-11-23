@@ -892,6 +892,7 @@ canvas.addEventListener("pointerdown", event => {
       colorEnd: $("brushColorEnd").value,
       gradientAngle: Number($("gradientAngle").value),
       size: Number($("brushSize").value),
+      autoShape: $("autoShapeEnabled").checked,
       type: $("brushType").value
     };
 
@@ -1053,13 +1054,113 @@ canvas.addEventListener("pointermove", event => {
   render();
 });
 
-function stopDrag() {
+function stopDrag(event, commitStroke = false) {
+  if (drag?.type === "draw") {
+    if (commitStroke && event) {
+      const finalPoint = getCoords(event);
+      const lastPoint = drag.target.points[drag.target.points.length - 1];
+      if (!lastPoint || Math.hypot(finalPoint.x - lastPoint.x, finalPoint.y - lastPoint.y) > 0.1) {
+        drag.target.points.push(finalPoint);
+      }
+    }
+    if (drag.target.autoShape) {
+      drag.target.shape = recognizeShape(drag.target);
+    }
+    render();
+  }
   drag = null;
   canvas.style.cursor = activeTool === "image" ? "grab" : "default";
 }
 
-canvas.addEventListener("pointerup", stopDrag);
-canvas.addEventListener("pointercancel", stopDrag);
+canvas.addEventListener("pointerup", event => stopDrag(event, true));
+canvas.addEventListener("pointercancel", event => stopDrag(event, false));
+
+function recognizeShape(stroke) {
+  const points = stroke.points.map(point => ({
+    x: point.x * canvas.width / 100,
+    y: point.y * canvas.height / 100
+  }));
+  if (points.length < 3) return null;
+
+  const bounds = points.reduce((box, point) => ({
+    left: Math.min(box.left, point.x),
+    right: Math.max(box.right, point.x),
+    top: Math.min(box.top, point.y),
+    bottom: Math.max(box.bottom, point.y)
+  }), { left: Infinity, right: -Infinity, top: Infinity, bottom: -Infinity });
+  const width = bounds.right - bounds.left;
+  const height = bounds.bottom - bounds.top;
+  const diagonal = Math.hypot(width, height);
+  if (diagonal < 10) return null;
+
+  let pathLength = 0;
+  for (let i = 1; i < points.length; i++) {
+    pathLength += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+  }
+  const first = points[0];
+  const last = points[points.length - 1];
+  const endpointDistance = Math.hypot(last.x - first.x, last.y - first.y);
+
+  if (endpointDistance / Math.max(pathLength, 1) > 0.78 && pathLength / diagonal < 1.2) {
+    return { type: "line" };
+  }
+
+  const closed = endpointDistance <= Math.max(12, diagonal * 0.2) && pathLength >= diagonal * 1.35;
+  if (!closed) return null;
+
+  const centerX = (bounds.left + bounds.right) / 2;
+  const centerY = (bounds.top + bounds.bottom) / 2;
+  const radiusX = Math.max(width / 2, 1);
+  const radiusY = Math.max(height / 2, 1);
+  const ellipseError = points.reduce((sum, point) => {
+    const normalized = Math.hypot((point.x - centerX) / radiusX, (point.y - centerY) / radiusY);
+    return sum + Math.abs(normalized - 1);
+  }, 0) / points.length;
+
+  const simplify = (list, tolerance) => {
+    if (list.length <= 2) return list;
+    const start = list[0];
+    const end = list[list.length - 1];
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const lengthSquared = dx * dx + dy * dy || 1;
+    let furthest = 0;
+    let furthestIndex = 0;
+    for (let i = 1; i < list.length - 1; i++) {
+      const point = list[i];
+      const projection = Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared));
+      const distance = Math.hypot(point.x - start.x - projection * dx, point.y - start.y - projection * dy);
+      if (distance > furthest) {
+        furthest = distance;
+        furthestIndex = i;
+      }
+    }
+    if (furthest <= tolerance) return [start, end];
+    const left = simplify(list.slice(0, furthestIndex + 1), tolerance);
+    const right = simplify(list.slice(furthestIndex), tolerance);
+    return [...left.slice(0, -1), ...right];
+  };
+
+  const closedPoints = [...points, points[0]];
+  const corners = simplify(closedPoints, diagonal * 0.07).slice(0, -1);
+  if (corners.length === 3) return { type: "triangle" };
+
+  if (corners.length >= 4 && corners.length <= 6) {
+    const cornerCoverage = [
+      { x: bounds.left, y: bounds.top },
+      { x: bounds.right, y: bounds.top },
+      { x: bounds.right, y: bounds.bottom },
+      { x: bounds.left, y: bounds.bottom }
+    ].every(corner => points.some(point => Math.hypot(point.x - corner.x, point.y - corner.y) <= diagonal * 0.24));
+    if (cornerCoverage) return { type: "rectangle" };
+  }
+
+  if (corners.length >= 5 && ellipseError < 0.22) {
+    return { type: "ellipse" };
+  }
+
+  return null;
+}
 
 // ======================================
 // 16. SAVE / JSON / OUTPUT

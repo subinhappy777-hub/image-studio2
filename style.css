@@ -303,6 +303,21 @@ canvas {
   gap: 10px;
 }
 
+.shape-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 9px;
+  background: #f1f5f9;
+}
+
+.shape-toggle input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+}
+
 input[type="range"] {
   width: 100%;
 }

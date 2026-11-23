@@ -663,8 +663,50 @@ function glitterRandom(seed) {
   return value - Math.floor(value);
 }
 
+function getShapePathPoints(stroke) {
+  const source = stroke.points || [];
+  if (!stroke.shape || source.length === 0) return source;
+
+  const xs = source.map(point => point.x * canvas.width / 100);
+  const ys = source.map(point => point.y * canvas.height / 100);
+  const left = Math.min(...xs);
+  const right = Math.max(...xs);
+  const top = Math.min(...ys);
+  const bottom = Math.max(...ys);
+  const toPercent = (x, y) => ({ x: x / canvas.width * 100, y: y / canvas.height * 100 });
+
+  if (stroke.shape.type === "line") return [source[0], source[source.length - 1]];
+  if (stroke.shape.type === "rectangle") {
+    return [
+      toPercent(left, top),
+      toPercent(right, top),
+      toPercent(right, bottom),
+      toPercent(left, bottom),
+      toPercent(left, top)
+    ];
+  }
+  if (stroke.shape.type === "triangle") {
+    return [
+      toPercent((left + right) / 2, top),
+      toPercent(right, bottom),
+      toPercent(left, bottom),
+      toPercent((left + right) / 2, top)
+    ];
+  }
+  if (stroke.shape.type === "ellipse") {
+    return Array.from({ length: 49 }, (_, index) => {
+      const angle = index / 48 * Math.PI * 2;
+      return toPercent(
+        (left + right) / 2 + (right - left) / 2 * Math.cos(angle),
+        (top + bottom) / 2 + (bottom - top) / 2 * Math.sin(angle)
+      );
+    });
+  }
+  return source;
+}
+
 function drawGlitterStroke(stroke) {
-  const points = stroke.points || [];
+  const points = getShapePathPoints(stroke);
   if (points.length === 0) return;
 
   const width = canvas.width;
@@ -791,20 +833,47 @@ function drawStrokes() {
     ctx.save();
     ctx.beginPath();
 
-    stroke.points.forEach((point, index) => {
-      const x = point.x * canvas.width / 100;
-      const y = point.y * canvas.height / 100;
+    if (stroke.shape) {
+      const xs = stroke.points.map(point => point.x * canvas.width / 100);
+      const ys = stroke.points.map(point => point.y * canvas.height / 100);
+      const left = Math.min(...xs);
+      const right = Math.max(...xs);
+      const top = Math.min(...ys);
+      const bottom = Math.max(...ys);
+      const width = right - left;
+      const height = bottom - top;
 
-      if (index === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
+      if (stroke.shape.type === "line") {
+        const first = stroke.points[0];
+        const last = stroke.points[stroke.points.length - 1];
+        ctx.moveTo(first.x * canvas.width / 100, first.y * canvas.height / 100);
+        ctx.lineTo(last.x * canvas.width / 100, last.y * canvas.height / 100);
+      } else if (stroke.shape.type === "rectangle") {
+        ctx.rect(left, top, width, height);
+      } else if (stroke.shape.type === "ellipse") {
+        ctx.ellipse(left + width / 2, top + height / 2, width / 2, height / 2, 0, 0, Math.PI * 2);
+      } else if (stroke.shape.type === "triangle") {
+        ctx.moveTo(left + width / 2, top);
+        ctx.lineTo(right, bottom);
+        ctx.lineTo(left, bottom);
+        ctx.closePath();
+      }
+    } else {
+      stroke.points.forEach((point, index) => {
+        const x = point.x * canvas.width / 100;
+        const y = point.y * canvas.height / 100;
 
-    if (stroke.points.length === 1) {
-      const p = stroke.points[0];
-      ctx.lineTo(
-        p.x * canvas.width / 100 + 0.01,
-        p.y * canvas.height / 100 + 0.01
-      );
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+
+      if (stroke.points.length === 1) {
+        const p = stroke.points[0];
+        ctx.lineTo(
+          p.x * canvas.width / 100 + 0.01,
+          p.y * canvas.height / 100 + 0.01
+        );
+      }
     }
 
     ctx.lineWidth = stroke.size;
