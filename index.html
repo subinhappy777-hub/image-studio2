@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>짤·카드 스튜디오</title>
+  <link rel="stylesheet" href="./style.css">
+  <!-- 다운로드 폰트 추가 (구글 폰트) -->
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Black+Han+Sans&family=Do+Hyeon&family=Nanum+Gothic:wght@700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+  <main class="app">
+
+    <!-- 상단 제목 -->
+    <header class="page-head">
+      <div>
+        <small>IMAGE EDITOR · T03</small>
+        <h1>짤·카드 스튜디오</h1>
+        <p>이미지와 문구를 조합해 나만의 카드를 만들어 보세요.</p>
+      </div>
+      <span class="badge">무로그인 편집기</span>
+    </header>
+
+    <!-- 전체 편집 영역 -->
+    <section class="workspace">
+
+      <!-- ======================================
+           왼쪽 도구 모음
+      ====================================== -->
+      <nav class="toolbar" aria-label="편집 도구">
+
+        <button class="tool-btn active" data-tool="text" aria-pressed="true" title="문구 편집" type="button">
+          T <span>문구</span>
+        </button>
+
+        <button class="tool-btn" data-tool="draw" aria-pressed="false" title="그리기" type="button">
+          ✎ <span>그리기</span>
+        </button>
+
+        <button class="tool-btn" data-tool="sticker" aria-pressed="false" title="스티커 붙이기" type="button">
+          🧸 <span>스티커</span>
+        </button>
+
+        <button class="tool-btn" data-tool="image" aria-pressed="false" title="이미지 편집" type="button">
+          ▧ <span>이미지</span>
+        </button>
+
+        <button class="tool-btn" data-tool="undo" title="실행 취소" type="button">
+          ↶ <span>취소</span>
+        </button>
+
+      </nav>
+
+      <!-- ======================================
+           중앙 편집 화면
+      ====================================== -->
+      <section class="canvas-zone">
+
+        <div class="canvas-top">
+          <label for="aspectRatio">
+            화면비
+            <select id="aspectRatio">
+              <option value="1:1">1:1 정사각형</option>
+              <option value="4:5">4:5 세로형</option>
+              <option value="16:9">16:9 가로형</option>
+            </select>
+          </label>
+          <span>실시간 미리보기</span>
+        </div>
+
+        <div class="canvas-stage">
+          <div id="canvasContainer">
+            <canvas id="canvas" aria-label="이미지 편집 화면"></canvas>
+
+            <!-- 이미지 불러오기 안내 -->
+            <button id="uploadPlaceholder" type="button">
+              <strong>＋</strong>
+              <span>이미지 불러오기</span>
+              <small>PNG / JPEG</small>
+            </button>
+
+            <!-- 사진 분할 모드일 때 캔버스 위에 겹쳐질 버튼들 -->
+            <div id="splitOverlay" class="split-overlay">
+              <button class="split-zone-btn" data-slot="0" type="button">＋<br>좌측 상단</button>
+              <button class="split-zone-btn" data-slot="1" type="button">＋<br>우측 상단</button>
+              <button class="split-zone-btn" data-slot="2" type="button">＋<br>좌측 하단</button>
+              <button class="split-zone-btn" data-slot="3" type="button">＋ 4번 칸 사진 추가</button>
+              <button class="split-zone-btn" data-slot="4" type="button">＋ 5번 칸 사진 추가</button>
+              <button class="split-zone-btn" data-slot="5" type="button">＋ 6번 칸 사진 추가</button>
+              <button class="split-zone-btn" data-slot="6" type="button">＋ 7번 칸 사진 추가</button>
+              <button class="split-zone-btn" data-slot="7" type="button">＋ 8번 칸 사진 추가</button>
+              <button class="split-zone-btn" data-slot="8" type="button">＋ 9번 칸 사진 추가</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="zoom">
+          <button id="zoomOutBtn" type="button" aria-label="축소">−</button>
+          <span id="zoomLabel">100%</span>
+          <button id="zoomInBtn" type="button" aria-label="확대">＋</button>
+        </div>
+
+      </section>
+
+      <!-- ======================================
+           오른쪽 편집 설정
+      ====================================== -->
+      <aside class="options">
+
+        <h2>편집 설정</h2>
+
+        <!-- 1. 문구 편집 -->
+        <div id="opt-text" class="opt-content active">
+
+          <label for="textInput">문구 입력</label>
+
+          <textarea
+            id="textInput"
+            rows="4"
+            maxlength="300"
+            wrap="soft"
+            spellcheck="true"
+            aria-describedby="textInputHint"
+            placeholder="한글 또는 영문 문구를 입력하세요. 줄바꿈도 사용할 수 있습니다."
+          >나만의 짤을 만들어 보세요!</textarea>
+
+          <p id="textInputHint" class="hint">
+              최대 300자까지 입력할 수 있습니다.
+              Enter 키로 직접 줄바꿈할 수 있으며,
+              캔버스에서는 글자 크기에 맞춰 자동 줄바꿈됩니다.
+          </p>
+
+          <button id="addTextBtn" class="secondary" type="button">문구 추가</button>
+
+          <!-- 텍스트 볼드 기능 -->
+          <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+            <input type="checkbox" id="fontBold"> <strong>굵게(Bold) 적용</strong>
+          </label>
+
+          <label for="fontSize">
+            글자 크기 <output id="fontSizeValue">44</output>
+          </label>
+          <input id="fontSize" type="range" min="12" max="120" value="44">
+
+          <label for="colorInput">글자 색상</label>
+          <input id="colorInput" type="color" value="#ffffff">
+
+          <!-- 기본 폰트 + 다운로드 폰트 추가 -->
+          <label for="fontFamily">글꼴</label>
+          <select id="fontFamily">
+            <option value="sans-serif">기본 고딕</option>
+            <option value="serif">명조</option>
+            <option value="monospace">고정폭</option>
+            <option value="'Nanum Pen Script', cursive">나눔 손글씨 펜</option>
+            <option value="'Black Han Sans', sans-serif">검은고딕</option>
+            <option value="'Do Hyeon', sans-serif">도현</option>
+          </select>
+
+          <p class="hint">문구를 추가한 뒤 캔버스에서 드래그해 이동하세요. 문구를 선택하면 내용을 수정할 수 있습니다.</p>
+        </div>
+
+        <!-- 2. 그리기 편집 -->
+        <div id="opt-draw" class="opt-content">
+          <label for="brushColor">펜 색상</label>
+          <input id="brushColor" type="color" value="#ffda67">
+
+          <label for="brushSize">펜 굵기</label>
+          <input id="brushSize" type="range" min="2" max="40" value="6">
+
+          <label for="brushType">펜 종류</label>
+          <select id="brushType">
+            <option value="normal">일반 펜</option>
+            <option value="highlighter">형광펜</option>
+            <option value="neon">네온 펜</option>
+            <option value="glitter">✨ 글리터 펜</option>
+          </select>
+          <p class="hint">원하는 펜을 선택한 뒤 이미지 위에 그림을 그려 보세요. 글리터 펜은 반짝이는 효과를 표현합니다.</p>
+        </div>
+
+        <!-- 3. 스티커 편집 -->
+        <div id="opt-sticker" class="opt-content">
+
+          <!-- 커스텀 스티커 추가 -->
+          <h3>나만의 스티커</h3>
+          <label for="customStickerInput" class="secondary" style="display:block; text-align:center; padding:10px; cursor:pointer; margin-bottom:12px;">
+            ＋ 내 스티커 추가 (PNG)
+          </label>
+          <input type="file" id="customStickerInput" accept="image/png" hidden>
+
+          <hr style="margin: 12px 0; border: 0; border-top: 1px solid #ddd;">
+
+          <!-- JS가 동적으로 스티커들을 그릴 빈 컨테이너 -->
+          <div id="stickerGrid"></div>
+
+          <hr style="margin: 12px 0; border: 0; border-top: 1px solid #ddd;">
+
+          <!-- 스티커 크기 -->
+          <label for="stickerSize">스티커 크기</label>
+          <input id="stickerSize" type="range" min="40" max="300" value="120">
+
+          <!-- 스티커 회전 기능 -->
+          <label for="stickerRotation">스티커 회전 (선택된 스티커)</label>
+          <input id="stickerRotation" type="range" min="-180" max="180" value="0">
+
+          <!-- 스티커 삭제 -->
+          <button id="deleteStickerBtn" class="secondary" type="button" style="margin-top:10px;">선택한 스티커 삭제</button>
+
+          <!-- 모든 스티커 삭제 -->
+          <button id="clearAllStickersBtn" class="secondary" type="button" style="margin-top:5px; background:#ffe4e6; color:#be123c;">모든 스티커 삭제</button>
+
+        </div>
+
+        <!-- 4. 이미지 및 프레임 편집 -->
+        <div id="opt-image" class="opt-content">
+
+          <!-- 사진 분할 레이아웃 기능 -->
+          <h3>사진 분할 레이아웃</h3>
+          <p class="hint">화면을 나누어 여러 장의 사진을 배치할 수 있습니다.</p>
+          <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <button id="layout1Btn" class="secondary" type="button" style="flex:1; background:#bfdbfe;">1칸 (기본)</button>
+            <button id="layout2Btn" class="secondary" type="button" style="flex:1;">2등분</button>
+            <button id="layout4Btn" class="secondary" type="button" style="flex:1;">4등분</button>
+            <button id="layout9Btn" class="secondary" type="button" style="flex:1;">9등분</button>
+          </div>
+
+          <hr style="margin: 12px 0; border: 0; border-top: 1px solid #ddd;">
+
+          <!-- 배경 색상 -->
+          <label for="bgColor">배경 색상</label>
+          <input id="bgColor" type="color" value="#222b42">
+
+          <!-- 이미지 이동 및 확대/축소 안내 -->
+          <p class="hint" style="margin-top:10px; background:#f0f9ff; padding:10px; border-radius:8px;">
+            <strong>[이미지 도구]</strong>를 선택한 뒤 캔버스 위의 사진을 드래그하면 이동합니다.<br>
+            아래 슬라이더로 사진의 크기를 조절할 수 있습니다.
+          </p>
+
+          <!-- 이미지 크기 (단일 이미지 전용) -->
+          <label for="imageScale">이미지 크기 (단일 이미지 전용)</label>
+          <input id="imageScale" type="range" min="20" max="200" value="100">
+
+          <!-- 사진 프레임 기능 -->
+          <h3 style="margin-top:16px;">💖 사진 꾸미기</h3>
+          <label for="frameType">사진 프레임</label>
+          <select id="frameType">
+            <option value="none">프레임 없음</option>
+            <option value="heart">💗 핑크 하트</option>
+            <option value="sparkle">✨ 반짝이</option>
+            <option value="lace">🎀 러블리 레이스</option>
+            <option value="polaroid">📸 폴라로이드</option>
+            <option value="y2k">💿 Y2K 레트로</option>
+          </select>
+          <p class="hint">원하는 프레임을 선택하면 사진에 바로 적용됩니다.<br>글리터 펜과 스티커를 함께 사용해 나만의 얼짱 감성 사진을 꾸며 보세요.</p>
+
+        </div>
+
+      </aside>
+
+    </section>
+
+    <!-- 하단 주요 기능 -->
+    <footer class="actions">
+
+      <!-- INPUT 버튼 (이미지 불러오기) -->
+      <button id="btnInput" type="button">
+        INPUT
+        <small>이미지 불러오기</small>
+      </button>
+
+      <!-- JSON 저장 버튼 -->
+      <button id="btnSaveJson" type="button">
+        SAVE JSON
+        <small>편집 상태를 JSON으로 저장</small>
+      </button>
+
+      <!-- 템플릿 저장 및 관리 -->
+      <button id="btnSave" type="button">
+        SAVE
+        <small>템플릿 관리</small>
+      </button>
+
+      <!-- 다중 포맷 다운로드 -->
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <button id="btnOutput" type="button" style="background:#159b88; flex:1;">
+          OUTPUT (PNG)
+        </button>
+        <select id="outputFormat" style="padding:4px; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; color:#1b2740;">
+          <option value="image/png">PNG 형식</option>
+          <option value="image/jpeg">JPEG 형식</option>
+          <option value="image/webp">WebP 형식</option>
+        </select>
+      </div>
+
+    </footer>
+
+    <!-- 상태 메시지 -->
+    <p id="status" class="status" role="status" aria-live="polite">
+      PNG 또는 JPEG 이미지를 불러오세요.
+    </p>
+
+    <!-- 숨겨진 파일 입력 -->
+    <input id="fileInput" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" hidden>
+    <!-- JSON 불러오기를 위한 숨겨진 파일 입력 -->
+    <input id="jsonFileInput" type="file" accept=".json" hidden>
+    <!-- 사진 분할 슬롯 파일 입력 (main.js에서 사용) -->
+    <input type="file" id="slotFileInput" accept="image/png, image/jpeg" hidden>
+
+  </main>
+
+  <!-- 템플릿 관리 창 -->
+  <div id="templateModal" class="modal" role="dialog" aria-modal="true" aria-label="템플릿 관리" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2>템플릿 관리</h2>
+        <button id="closeModalBtn" type="button" aria-label="닫기">✕</button>
+      </div>
+      <button id="createTemplateBtn" class="secondary" type="button">
+        ＋ 현재 편집 상태를 새 템플릿으로 저장
+      </button>
+      <ul id="templateList"></ul>
+      <p class="hint">템플릿은 현재 브라우저에 저장됩니다. 브라우저 데이터를 삭제하면 저장 내용이 사라질 수 있습니다.</p>
+    </div>
+  </div>
+
+  <!-- JavaScript 연결 -->
+  <script type="module" src="./js/main.js"></script>
+
+</body>
+
+</html>

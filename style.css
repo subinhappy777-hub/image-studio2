@@ -1,0 +1,821 @@
+/* ======================================
+   1. 기본 설정 (Reset & Theme)
+   ====================================== */
+:root {
+  font-family: "Malgun Gothic", system-ui, sans-serif;
+  color: #1b2740;
+  background: #f2f5fa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app {
+  max-width: 1180px;
+  margin: 28px auto;
+  padding: 0 20px;
+}
+
+/* ======================================
+   2. 상단 헤더
+   ====================================== */
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.page-head h1 {
+  margin: 5px 0;
+  font-size: 28px;
+}
+
+.page-head p {
+  margin: 6px 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.page-head small {
+  color: #64748b;
+}
+
+.badge {
+  background: #e4ebff;
+  color: #3157bd;
+  padding: 10px 14px;
+  border-radius: 30px;
+  font-size: 12px;
+}
+
+/* ======================================
+   3. 워크스페이스 (3단 레이아웃)
+   ====================================== */
+.workspace {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) 300px; /* 우측 패널 살짝 넓힘 */
+  min-height: 580px;
+  background: white;
+  border: 1px solid #dde4f1;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 12px 35px #20365b15;
+}
+
+/* ======================================
+   4. 왼쪽 도구 모음
+   ====================================== */
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 15px 8px;
+  background: #f8faff;
+  border-right: 1px solid #e6ebf4;
+}
+
+.tool-btn {
+  border: none;
+  background: transparent;
+  border-radius: 12px;
+  padding: 12px 4px;
+  font-size: 27px;
+  color: #445473;
+}
+
+.tool-btn span {
+  display: block;
+  font-size: 11px;
+  margin-top: 5px;
+}
+
+.tool-btn:hover {
+  background: #edf2ff;
+}
+
+.tool-btn.active {
+  background: #dfe9ff;
+  color: #2055c9;
+}
+
+/* ======================================
+   5. 중앙 캔버스 영역
+   ====================================== */
+.canvas-zone {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #f0f3f9;
+}
+
+.canvas-top {
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.canvas-top label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.canvas-top select {
+  padding: 7px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+}
+
+.canvas-stage {
+  flex: 1;
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow: auto;
+}
+
+#canvasContainer {
+  position: relative;
+  flex-shrink: 0;
+  box-shadow: 0 10px 30px #182b4d30;
+}
+
+canvas {
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+#uploadPlaceholder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  border: 2px dashed #9caecc;
+  background: #ffffff25;
+  color: white;
+  text-shadow: 0 2px 5px #0008;
+  cursor: pointer;
+}
+
+#uploadPlaceholder strong {
+  font-size: 48px;
+}
+
+#uploadPlaceholder span {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+#uploadPlaceholder small {
+  font-size: 12px;
+}
+
+/* 캔버스 위 인라인 텍스트 입력창 */
+.inline-text-input {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 6px 10px;
+  border: 2px solid #4f8cff;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #111;
+  font-weight: bold;
+  text-align: center;
+  outline: none;
+  display: none;
+  z-index: 10;
+}
+
+/* ======================================
+   6. 확대/축소
+   ====================================== */
+.zoom {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  padding: 13px;
+}
+
+.zoom button {
+  width: 36px;
+  height: 32px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+}
+
+.zoom span {
+  min-width: 45px;
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ======================================
+   7. 오른쪽 설정 패널 (공통)
+   ====================================== */
+.options {
+  padding: 22px;
+  border-left: 1px solid #e6ebf4;
+  overflow: auto;
+}
+
+.options h2 {
+  margin-top: 0;
+  font-size: 18px;
+}
+
+.opt-content {
+  display: none;
+}
+
+.opt-content.active {
+  display: grid;
+  gap: 14px;
+}
+
+.options label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.options textarea,
+.options select,
+.options input[type="file"] {
+  width: 100%;
+  padding: 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  max-width: 100%;
+  font-size: 12px;
+}
+
+.options input[type="file"]::file-selector-button {
+  border: 0;
+  border-radius: 7px;
+  padding: 9px;
+  background: #e6efff;
+  color: #2454bd;
+  cursor: pointer;
+}
+
+input[type="range"] {
+  width: 100%;
+}
+
+input[type="color"] {
+  width: 100%;
+  height: 42px;
+  border: none;
+  background: transparent;
+}
+
+.secondary {
+  border: none;
+  background: #e6efff;
+  color: #2454bd;
+  border-radius: 9px;
+  padding: 11px;
+  font-weight: bold;
+}
+
+.hint {
+  color: #718096;
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ======================================
+   8. 하단 버튼 영역
+   ====================================== */
+.actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.actions button {
+  border: none;
+  border-radius: 13px;
+  padding: 16px 10px;
+  background: #315bd3;
+  color: white;
+  font-size: 17px;
+  font-weight: bold;
+}
+
+.actions button:nth-child(2) {
+  background: #283b61;
+}
+
+.actions button:nth-child(3) {
+  background: #159b88;
+}
+
+/* JSON 저장 버튼 (기존 INPUT 위치) */
+#btnSaveJson {
+  background: #6d28d9; /* 보라색 */
+}
+
+.actions small {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  font-weight: normal;
+}
+
+/* ======================================
+   9. 상태 메시지
+   ====================================== */
+.status {
+  padding: 12px 15px;
+  margin-top: 15px;
+  background: #e9f1ff;
+  color: #35568c;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.status.error {
+  background: #fff0ef;
+  color: #a32929;
+}
+
+/* ======================================
+   10. 템플릿 모달
+   ====================================== */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #11182799;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+}
+
+.modal.open {
+  display: flex;
+}
+
+.modal-card {
+  width: min(540px, 100%);
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 24px;
+  background: white;
+  border-radius: 18px;
+}
+
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-head h2 {
+  margin: 0 0 15px;
+}
+
+.modal-head button {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+}
+
+#createTemplateBtn {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+#templateList {
+  list-style: none;
+  padding: 0;
+}
+
+#templateList li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 0;
+  border-bottom: 1px solid #e4e9f1;
+}
+
+.template-buttons {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.template-buttons button {
+  border: none;
+  padding: 8px;
+  border-radius: 7px;
+  background: #e8efff;
+  font-size: 12px;
+}
+
+.template-buttons .delete-btn {
+  background: #ffe6e6;
+  color: #a22;
+}
+
+/* ======================================
+   11. 스티커 패널 (카테고리/회전/커스텀)
+   ====================================== */
+.sticker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)); /* 4열로 배치 */
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.sticker-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  height: 60px; /* 🟢 추가: 버튼 높이 고정 */
+  overflow: hidden; /* 🟢 추가: 넘치는 이미지 숨김 */
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 26px;
+  cursor: pointer;
+  transition: transform .15s, background .15s, border-color .15s;
+  padding: 4px;
+}
+
+/* 🟢 추가: 내부 이미지 태그 크기 조절 */
+.sticker-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* 비율 유지하면서 칸에 맞춤 */
+  pointer-events: none; /* 클릭이 버튼으로 전달되도록 */
+}
+
+.sticker-item:hover {
+  transform: scale(1.06);
+  background: #fff1f8;
+  border-color: #f9a8d4;
+}
+
+.sticker-item.selected {
+  background: #ffe4f1;
+  border-color: #ec4899;
+  box-shadow: 0 0 0 2px #fbcfe8;
+}
+
+/* 말풍선 스티커 전용 스타일 */
+.sticker-item.speech-bubble {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.3;
+  text-align: center;
+  word-break: keep-all;
+  background: #fff4fa;
+  border-radius: 18px;
+  min-height: 60px;
+}
+
+#opt-sticker h3 {
+  margin: 12px 0 4px;
+  font-size: 14px;
+  color: #334155;
+}
+
+hr.divider {
+  margin: 12px 0;
+  border: 0;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* 텍스트 굵게 체크박스 UI */
+.bold-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.bold-check-row input {
+  width: 18px;
+  height: 18px;
+}
+
+.bold-check-row strong {
+  font-size: 15px;
+  color: #1e293b;
+}
+
+/* ======================================
+   12. 사진 분할 업로드 UI
+   ====================================== */
+.split-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.split-buttons button {
+  flex: 1;
+}
+
+/* ======================================
+   13. 반응형 (태블릿 & 모바일)
+   ====================================== */
+@media (max-width: 850px) {
+  .workspace {
+    grid-template-columns: 65px minmax(0, 1fr);
+  }
+  .options {
+    grid-column: 1 / -1;
+    border-left: none;
+    border-top: 1px solid #e6ebf4;
+  }
+  .canvas-stage {
+    min-height: 350px;
+  }
+}
+
+@media (max-width: 520px) {
+  .app {
+    padding: 0 10px;
+    margin: 15px auto;
+  }
+  .page-head h1 {
+    font-size: 22px;
+  }
+  .badge {
+    display: none;
+  }
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+  .toolbar {
+    flex-direction: row;
+    justify-content: space-around;
+    border-right: none;
+    border-bottom: 1px solid #e6ebf4;
+  }
+  .tool-btn {
+    font-size: 22px;
+  }
+  .canvas-stage {
+    min-height: 300px;
+    padding: 8px;
+  }
+  .options {
+    grid-column: 1;
+  }
+  .actions {
+    gap: 7px;
+  }
+  .actions button {
+    padding: 13px 5px;
+    font-size: 13px;
+  }
+  .actions small {
+    font-size: 10px;
+  }
+  #templateList li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .sticker-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .sticker-item {
+    min-height: 48px;
+    font-size: 22px;
+  }
+  .sticker-item.speech-bubble {
+    font-size: 10px;
+  }
+}
+
+/* ======================================
+   14. 🟢 캔버스 4분할 오버레이 스타일 (신규 추가)
+   ====================================== */
+.split-overlay {
+  position: absolute;
+  inset: 0;
+  display: none; /* JS에서 2/4등분 시 grid로 변경 */
+  pointer-events: none; /* 기본적으로 클릭 통과 (버튼만 클릭되게) */
+}
+
+.split-zone-btn {
+  pointer-events: auto; /* 버튼은 클릭 가능 */
+  background: rgba(255, 255, 255, 0.4);
+  border: 2px dashed #94a3b8;
+  color: #475569;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 8px;
+  margin: 5px; /* 간격 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.split-zone-btn:hover {
+  background: rgba(219, 234, 254, 0.8);
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+/* 4등분 모드일 때 버튼을 2x2 그리드로 배치 */
+.split-overlay.mode-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+/* 2등분 모드일 때 버튼을 1x2 그리드로 배치 */
+.split-overlay.mode-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+
+/* 9등분 모드일 때 버튼을 3x3 그리드로 배치 */
+.split-overlay.mode-9 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+}
+
+/* 분할 모드에서 선택한 칸 수만큼만 업로드 버튼 표시 */
+.split-zone-btn[hidden] {
+  display: none;
+}
+
+/* ======================================
+   15. 🟢 신규 추가: 커스텀 스티커 삭제 버튼 및 다중 포맷 UI
+   ====================================== */
+
+/* 스티커 패널 내 커스텀 스티커 삭제 X 버튼 */
+.custom-sticker-delete {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ff5c6c;
+  color: white;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  z-index: 5;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.custom-sticker-delete:hover {
+  background: #e11d48;
+  transform: scale(1.1);
+}
+
+/* 다중 포맷 저장을 위한 하단 레이아웃 조정 */
+.actions {
+  grid-template-columns: 1fr 1fr 1fr 1.2fr; /* 4번째 칸을 약간 넓게 */
+}
+
+.actions .format-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.actions select {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 13px;
+  color: #1b2740;
+  background: white;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* 모바일 대응 (포맷 선택기 포함) */
+@media (max-width: 520px) {
+  .actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .actions .format-selector {
+    grid-column: span 2;
+  }
+}
+
+/* ======================================
+   16. 문구 입력 및 자동 줄바꿈 UI 개선
+   ====================================== */
+
+/* 문구 입력창 */
+#textInput {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+
+  background: #ffffff;
+  color: #1b2740;
+
+  font-size: 14px;
+  line-height: 1.7;
+
+  resize: vertical;
+
+  /* 긴 단어가 입력창 밖으로 나가는 현상 방지 */
+  overflow-wrap: anywhere;
+  word-break: normal;
+
+  /* 사용자가 입력한 줄바꿈 표시 */
+  white-space: pre-wrap;
+
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* 입력창에 포커스가 있을 때 */
+#textInput:focus {
+  outline: none;
+  border-color: #4f8cff;
+  box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.15);
+}
+
+/* 문구 입력 안내 */
+#textInputHint {
+  margin-top: -5px;
+  line-height: 1.7;
+}
+
+/* 편집 설정 영역의 입력창 공통 개선 */
+.options textarea {
+  max-width: 100%;
+  
+  box-sizing: border-box;
+}
+
+/* 키보드로 조작할 때 포커스 표시 */
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #4f8cff;
+  outline-offset: 2px;
+}
+
+/* 작은 화면에서 문구 입력창 여백 조정 */
+@media (max-width: 520px) {
+  #textInput {
+    min-height: 90px;
+    font-size: 13px;
+  }
+}
