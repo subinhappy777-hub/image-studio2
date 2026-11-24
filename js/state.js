@@ -19,6 +19,8 @@ export const state = {
   selectedStickerId: null,
 
   imageScale: 1,
+  imageScaleX: 1,
+  imageScaleY: 1,
   imageX: 50,
   imageY: 50,
 
@@ -26,7 +28,7 @@ export const state = {
 
   splitLayout: 1,
   splitImages: Array(9).fill(null),
-  splitImageTransforms: Array.from({ length: 9 }, () => ({ x: 50, y: 50, scale: 1 }))
+  splitImageTransforms: Array.from({ length: 9 }, () => ({ x: 50, y: 50, scale: 1, scaleX: 1, scaleY: 1 }))
 };
 
 // ======================================
@@ -607,8 +609,8 @@ function drawImage() {
           pieceW / img.naturalWidth,
           pieceH / img.naturalHeight
         ) * (Number.isFinite(transform.scale) ? transform.scale : 1);
-        const imageWidth = img.naturalWidth * fit;
-        const imageHeight = img.naturalHeight * fit;
+        const imageWidth = img.naturalWidth * fit * (Number.isFinite(transform.scaleX) ? transform.scaleX : 1);
+        const imageHeight = img.naturalHeight * fit * (Number.isFinite(transform.scaleY) ? transform.scaleY : 1);
         const centerX = dx + pieceW * (Number.isFinite(transform.x) ? transform.x : 50) / 100;
         const centerY = dy + pieceH * (Number.isFinite(transform.y) ? transform.y : 50) / 100;
 
@@ -640,8 +642,8 @@ function drawImage() {
       height / img.naturalHeight
     ) * state.imageScale;
 
-  const imageWidth = img.naturalWidth * fit;
-  const imageHeight = img.naturalHeight * fit;
+  const imageWidth = img.naturalWidth * fit * (Number.isFinite(state.imageScaleX) ? state.imageScaleX : 1);
+  const imageHeight = img.naturalHeight * fit * (Number.isFinite(state.imageScaleY) ? state.imageScaleY : 1);
 
   const x = width * state.imageX / 100 - imageWidth / 2;
   const y = height * state.imageY / 100 - imageHeight / 2;
@@ -1060,21 +1062,29 @@ function drawStickers() {
       const textWidth = ctx.measureText(message).width;
       const padding = size * 0.2;
       const boxWidth = textWidth + padding * 2;
-      const boxHeight = size * 0.65;
-
-      ctx.fillStyle = sticker.color || "#ffffff";
+      const boxHeight = Math.max(size * 0.65, size * 0.5);
+      const shape = sticker.speechShape || "rounded";
+      const fill = sticker.speechFill || sticker.color || "white";
 
       ctx.beginPath();
-      ctx.roundRect(
-        -boxWidth / 2,
-        -boxHeight / 2,
-        boxWidth,
-        boxHeight,
-        size * 0.15
-      );
-      ctx.fill();
+      if (shape === "circle") {
+        const radius = Math.max(boxWidth, boxHeight) / 2;
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      } else {
+        ctx.roundRect(-boxWidth / 2, -boxHeight / 2, boxWidth, boxHeight, size * 0.15);
+      }
 
-      ctx.fillStyle = "#333333";
+      if (fill !== "none") {
+        ctx.fillStyle = fill === "white" ? "#ffffff" : fill;
+        ctx.fill();
+      }
+      if (sticker.speechOutline === true) {
+        ctx.strokeStyle = sticker.speechOutlineColor || "#111827";
+        ctx.lineWidth = Math.max(2, size * 0.025);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = sticker.textColor || "#333333";
       ctx.fillText(message, 0, 0);
     } else {
       ctx.font =
@@ -1093,7 +1103,7 @@ function drawStickers() {
 // 13. 사진 프레임 그리기
 // ======================================
 
-function drawFrame() {
+function drawFrameContent() {
   const type = state.frameType;
   if (!type || type === "none") return;
 
@@ -1237,6 +1247,37 @@ function drawFrame() {
   }
 
   ctx.restore();
+}
+
+function drawFrame() {
+  if (!state.frameType || state.frameType === "none") return;
+  if (![2, 4, 9].includes(state.splitLayout)) {
+    drawFrameContent();
+    return;
+  }
+
+  const width = canvas.width;
+  const height = canvas.height;
+  const cols = state.splitLayout === 9 ? 3 : 2;
+  const rows = state.splitLayout === 2 ? 1 : cols;
+  const gap = state.splitLayout === 9 ? 6 : 10;
+  const cellWidth = (width - gap * (cols - 1)) / cols;
+  const cellHeight = (height - gap * (rows - 1)) / rows;
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const x = col * (cellWidth + gap);
+      const y = row * (cellHeight + gap);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y, cellWidth, cellHeight);
+      ctx.clip();
+      ctx.translate(x, y);
+      ctx.scale(cellWidth / width, cellHeight / height);
+      drawFrameContent();
+      ctx.restore();
+    }
+  }
 }
 
 // ======================================
