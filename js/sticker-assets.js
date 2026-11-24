@@ -49,6 +49,56 @@ export const BUILTIN_STICKERS = {
     category: "speech" // 카테고리: 말풍선
   })),
 
+  // 액세서리 스티커
+  crown: [
+    { id: "crown-gold", kind: "image", name: "황금 왕관", category: "crown", src: svg(`
+      <path d="M45 205 L25 75 L135 145 L250 35 L365 145 L475 75 L455 205 Z" fill="#ffd54f" stroke="#8a5b00" stroke-width="18" stroke-linejoin="round"/>
+      <path d="M45 220 H455 V260 H45 Z" fill="#ffec99" stroke="#8a5b00" stroke-width="14"/>
+      <circle cx="250" cy="82" r="22" fill="#ff5c8a"/><circle cx="135" cy="145" r="17" fill="#4fc3f7"/><circle cx="365" cy="145" r="17" fill="#4fc3f7"/>
+    `) },
+    { id: "crown-pink", kind: "image", name: "핑크 왕관", category: "crown", src: svg(`
+      <path d="M45 205 L25 75 L135 145 L250 35 L365 145 L475 75 L455 205 Z" fill="#ff9bc8" stroke="#9d456d" stroke-width="18" stroke-linejoin="round"/>
+      <path d="M45 220 H455 V260 H45 Z" fill="#ffd3e6" stroke="#9d456d" stroke-width="14"/>
+      <circle cx="250" cy="82" r="22" fill="#fff"/><circle cx="135" cy="145" r="17" fill="#ffe45e"/><circle cx="365" cy="145" r="17" fill="#ffe45e"/>
+    `) },
+    { id: "crown-lilac", kind: "image", name: "보라 보석 왕관", category: "crown", src: svg(`
+      <path d="M45 205 L25 75 L135 145 L250 35 L365 145 L475 75 L455 205 Z" fill="#b99cff" stroke="#5f4696" stroke-width="18" stroke-linejoin="round"/>
+      <path d="M45 220 H455 V260 H45 Z" fill="#e5dcff" stroke="#5f4696" stroke-width="14"/>
+      <circle cx="250" cy="82" r="22" fill="#ff80ab"/><circle cx="135" cy="145" r="17" fill="#7ce4ff"/><circle cx="365" cy="145" r="17" fill="#7ce4ff"/>
+    `) }
+  ],
+
+  glasses: [
+    { id: "glasses-round", kind: "image", name: "둥근 안경", category: "glasses", src: svg(`
+      <g fill="none" stroke="#263246" stroke-width="18" stroke-linecap="round"><circle cx="145" cy="145" r="95"/><circle cx="355" cy="145" r="95"/><path d="M240 140 Q250 125 260 140 M50 115 L10 95 M450 115 L490 95"/></g>
+    `) },
+    { id: "glasses-pink", kind: "image", name: "핑크 패션 안경", category: "glasses", src: svg(`
+      <g fill="#ffeaf3" stroke="#e34c91" stroke-width="18" stroke-linejoin="round"><path d="M35 75 H225 Q220 245 130 245 Q50 245 35 75Z"/><path d="M275 75 H465 Q450 245 370 245 Q280 245 275 75Z"/></g>
+      <path d="M225 115 Q250 95 275 115 M35 100 L5 82 M465 100 L495 82" fill="none" stroke="#e34c91" stroke-width="16" stroke-linecap="round"/>
+    `) },
+    { id: "glasses-blue", kind: "image", name: "파란 안경", category: "glasses", src: svg(`
+      <g fill="#e6f7ff" stroke="#2696c9" stroke-width="18"><rect x="30" y="65" width="190" height="175" rx="48"/><rect x="280" y="65" width="190" height="175" rx="48"/></g>
+      <path d="M220 115 Q250 95 280 115 M30 100 L5 82 M470 100 L495 82" fill="none" stroke="#2696c9" stroke-width="16" stroke-linecap="round"/>
+    `) }
+  ],
+
+  sunglasses: [
+    { id: "sunglasses-classic", kind: "image", name: "클래식 선글라스", category: "sunglasses", src: svg(`
+      <path d="M25 75 H225 L205 205 Q190 250 120 250 Q50 250 40 195 Z M275 75 H475 L460 195 Q450 250 380 250 Q310 250 295 205 Z" fill="#202838" stroke="#111827" stroke-width="16" stroke-linejoin="round"/>
+      <path d="M225 105 Q250 85 275 105 M25 92 L5 75 M475 92 L495 75" fill="none" stroke="#111827" stroke-width="16" stroke-linecap="round"/>
+      <path d="M65 105 L165 105" stroke="#91d7ff" stroke-width="16" opacity=".8"/>
+    `) },
+    { id: "sunglasses-pink", kind: "image", name: "핑크 선글라스", category: "sunglasses", src: svg(`
+      <path d="M25 75 H225 L205 205 Q190 250 120 250 Q50 250 40 195 Z M275 75 H475 L460 195 Q450 250 380 250 Q310 250 295 205 Z" fill="#ff78b7" stroke="#9b285f" stroke-width="16" stroke-linejoin="round"/>
+      <path d="M225 105 Q250 85 275 105 M25 92 L5 75 M475 92 L495 75" fill="none" stroke="#9b285f" stroke-width="16" stroke-linecap="round"/>
+      <path d="M65 105 L165 105" stroke="#fff" stroke-width="16" opacity=".8"/>
+    `) },
+    { id: "sunglasses-heart", kind: "image", name: "하트 선글라스", category: "sunglasses", src: svg(`
+      <path d="M130 225 C20 145 35 60 100 65 Q140 65 155 100 Q180 55 220 70 Q285 100 180 225 Q155 250 130 225Z M320 225 C210 145 225 60 290 65 Q330 65 345 100 Q370 55 410 70 Q475 100 370 225 Q345 250 320 225Z" fill="#ff5d9e" stroke="#8c2454" stroke-width="16"/>
+      <path d="M245 105 Q250 90 255 105 M35 100 L8 80 M465 100 L492 80" fill="none" stroke="#8c2454" stroke-width="15" stroke-linecap="round"/>
+    `) }
+  ],
+
   // 🟢 3. 동물 캐릭터 (SVG 아이콘)
   animal: [
     {
@@ -173,6 +223,9 @@ export function getStickersByCategory() {
     emoji: BUILTIN_STICKERS.emoji,
     animal: BUILTIN_STICKERS.animal.filter(s => s.category === "animal"),
     whiskers: BUILTIN_STICKERS.animal.filter(s => s.category === "whiskers"),
+    crown: BUILTIN_STICKERS.crown,
+    glasses: BUILTIN_STICKERS.glasses,
+    sunglasses: BUILTIN_STICKERS.sunglasses,
     speech: BUILTIN_STICKERS.speech
   };
 }
@@ -184,6 +237,9 @@ export function getAllBuiltinStickers() {
   return [
     ...BUILTIN_STICKERS.emoji,
     ...BUILTIN_STICKERS.animal,
+    ...BUILTIN_STICKERS.crown,
+    ...BUILTIN_STICKERS.glasses,
+    ...BUILTIN_STICKERS.sunglasses,
     ...BUILTIN_STICKERS.speech
   ];
 }
