@@ -212,6 +212,25 @@
           <!-- JS가 동적으로 스티커들을 그릴 빈 컨테이너 -->
           <div id="stickerGrid"></div>
 
+          <section id="speechStyleControls" class="speech-style-controls" hidden>
+            <h3>말풍선 모양과 배경</h3>
+            <label for="speechShape">모양</label>
+            <select id="speechShape">
+              <option value="rounded">둥근 사각형</option>
+              <option value="circle">원형</option>
+            </select>
+            <label for="speechFill">배경</label>
+            <select id="speechFill">
+              <option value="white">흰 배경</option>
+              <option value="none">배경 없음</option>
+            </select>
+            <label class="shape-toggle" for="speechOutline">
+              <input id="speechOutline" type="checkbox" checked>
+              <span>검은 테두리</span>
+            </label>
+            <p class="hint">배경과 테두리를 조합해 말풍선을 꾸밀 수 있습니다.</p>
+          </section>
+
           <hr style="margin: 12px 0; border: 0; border-top: 1px solid #ddd;">
 
           <!-- 스티커 크기 -->
@@ -258,6 +277,10 @@
           <!-- 이미지 크기 -->
           <label id="imageScaleLabel" for="imageScale">사진 크기</label>
           <input id="imageScale" type="range" min="20" max="300" value="100">
+          <label id="imageWidthScaleLabel" for="imageWidthScale">가로 늘이기</label>
+          <input id="imageWidthScale" type="range" min="30" max="250" value="100">
+          <label id="imageHeightScaleLabel" for="imageHeightScale">세로 늘이기</label>
+          <input id="imageHeightScale" type="range" min="30" max="250" value="100">
 
           <!-- 사진 프레임 기능 -->
           <h3 style="margin-top:16px;">💖 사진 꾸미기</h3>
