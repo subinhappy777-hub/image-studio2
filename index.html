@@ -270,11 +270,17 @@
 
           <!-- 이미지 이동 및 확대/축소 안내 -->
           <p class="hint" style="margin-top:10px; background:#f0f9ff; padding:10px; border-radius:8px;">
-            <strong>[이미지 도구]</strong>를 선택하고 사진을 드래그해 프레임 안에서 위치를 조절하세요. 분할 사진은 원하는 칸을 직접 드래그할 수 있습니다.<br>
-            아래 슬라이더로 선택한 사진을 확대하거나 축소할 수 있습니다.
+            <strong>[이미지 도구]</strong>를 선택한 뒤 사진을 눌러 이동하세요. 모서리 점을 드래그하면 크기가 바뀌고, 위쪽 회전 손잡이를 드래그하면 사진이 돌아갑니다.<br>
+            가로·세로 크기와 사진 맞춤 방식도 아래에서 조절할 수 있습니다.
           </p>
 
           <!-- 이미지 크기 -->
+          <label for="imageFit">이미지 화면 맞춤</label>
+          <select id="imageFit">
+            <option value="cover">캔버스 꽉 채우기</option>
+            <option value="contain">사진 전체 보기</option>
+          </select>
+
           <label id="imageScaleLabel" for="imageScale">사진 크기</label>
           <input id="imageScale" type="range" min="20" max="300" value="100">
           <label id="imageWidthScaleLabel" for="imageWidthScale">가로 늘이기</label>
