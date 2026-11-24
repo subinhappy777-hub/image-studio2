@@ -141,6 +141,8 @@ export async function handleFile(file, onBeforeApply = null) {
 
     // 이미지 위치 및 크기 초기화
     state.imageScale = 1;
+    state.imageScaleX = 1;
+    state.imageScaleY = 1;
     state.imageX = 50;
     state.imageY = 50;
 
