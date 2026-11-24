@@ -591,72 +591,221 @@ hr.divider {
    13. 반응형 (태블릿 & 모바일)
    ====================================== */
 @media (max-width: 850px) {
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .app {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    margin: 0;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
+
+  .page-head {
+    flex: 0 0 auto;
+    margin-bottom: 8px;
+  }
+
+  .page-head h1 {
+    font-size: 22px;
+  }
+
+  .page-head p {
+    margin: 3px 0;
+    font-size: 12px;
+  }
+
   .workspace {
+    flex: 1 1 auto;
+    min-height: 0;
     height: auto;
-    grid-template-columns: 65px minmax(0, 1fr);
+    grid-template-columns: 58px minmax(0, 1fr) minmax(210px, 30vw);
+    grid-template-rows: minmax(0, 1fr);
   }
-  .options {
-    grid-column: 1 / -1;
-    max-height: min(65vh, 620px);
-    border-left: none;
-    border-top: 1px solid #e6ebf4;
+
+  .toolbar {
+    min-height: 0;
+    gap: 6px;
+    padding: 8px 4px;
+    overflow-y: auto;
   }
+
+  .tool-btn {
+    padding: 9px 2px;
+    font-size: 22px;
+  }
+
+  .canvas-zone {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .canvas-top {
+    flex: 0 0 auto;
+    padding: 7px 9px;
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .canvas-top label {
+    gap: 4px;
+  }
+
+  .canvas-top select {
+    max-width: 105px;
+    padding: 5px;
+  }
+
   .canvas-stage {
-    min-height: 350px;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 8px;
+    overflow: hidden;
+  }
+
+  #canvasContainer,
+  #canvas {
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .options {
+    grid-column: auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    border-left: 1px solid #e6ebf4;
+    border-top: none;
+  }
+
+  .actions {
+    flex: 0 0 auto;
+    margin-top: 8px;
+    gap: 8px;
   }
 }
 
 @media (max-width: 520px) {
   .app {
-    padding: 0 10px;
-    margin: 15px auto;
+    padding: 5px;
   }
-  .page-head h1 {
-    font-size: 22px;
+
+  .page-head {
+    margin-bottom: 5px;
   }
+
+  .page-head small,
+  .page-head p,
   .badge {
     display: none;
   }
-  .workspace {
-    grid-template-columns: 1fr;
+
+  .page-head h1 {
+    margin: 0;
+    font-size: 18px;
   }
+
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) minmax(100px, 22dvh);
+  }
+
   .toolbar {
+    grid-column: 1;
+    grid-row: 1;
     flex-direction: row;
     justify-content: space-around;
+    gap: 3px;
+    padding: 3px;
     border-right: none;
     border-bottom: 1px solid #e6ebf4;
+    overflow-x: auto;
+    overflow-y: hidden;
   }
+
   .tool-btn {
-    font-size: 22px;
+    flex: 1 0 48px;
+    padding: 4px 2px;
+    font-size: 19px;
   }
+
+  .tool-btn span {
+    margin-top: 2px;
+    font-size: 9px;
+  }
+
+  .canvas-zone {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
   .canvas-stage {
-    min-height: 300px;
-    padding: 8px;
+    min-height: 0;
+    padding: 4px;
   }
+
+  .canvas-top {
+    padding: 5px;
+  }
+
+  .canvas-top > span {
+    display: none;
+  }
+
+  .canvas-top #previewBtn {
+    padding: 5px 7px;
+    font-size: 11px;
+  }
+
   .options {
     grid-column: 1;
+    grid-row: 3;
+    min-height: 0;
+    max-height: none;
+    border-left: none;
+    border-top: 1px solid #e6ebf4;
   }
+
   .actions {
-    gap: 7px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+    margin-top: 5px;
   }
+
+  .actions .format-selector {
+    grid-column: span 2;
+  }
+
   .actions button {
-    padding: 13px 5px;
-    font-size: 13px;
+    padding: 8px 4px;
+    font-size: 11px;
   }
+
   .actions small {
-    font-size: 10px;
+    font-size: 9px;
   }
+
   #templateList li {
     align-items: flex-start;
     flex-direction: column;
   }
+
   .sticker-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+
   .sticker-item {
-    min-height: 48px;
-    font-size: 22px;
+    min-height: 42px;
+    font-size: 20px;
   }
+
   .sticker-item.speech-bubble {
     font-size: 10px;
   }
