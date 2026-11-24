@@ -1230,38 +1230,47 @@ function recognizeShape(stroke) {
   }, 0) / loop.length;
   if (ellipseError < 0.16) return { type: "ellipse" };
 
-  // 모서리 각도를 보며 손으로 그린 다각형에서 세 꼭짓점 또는 네 꼭짓점을 찾습니다.
+  // 닫힌 선을 가장 먼 점에서 둘로 나누고 RDP로 단순화해 꼭짓점을 찾습니다.
   const count = loop.length;
-  const windowSize = Math.max(2, Math.min(8, Math.floor(count / 28)));
-  const candidates = [];
-  for (let i = 0; i < count; i++) {
-    const before = loop[(i - windowSize + count) % count];
-    const point = loop[i];
-    const after = loop[(i + windowSize) % count];
-    const ax = point.x - before.x;
-    const ay = point.y - before.y;
-    const bx = after.x - point.x;
-    const by = after.y - point.y;
-    const aLength = Math.hypot(ax, ay) || 1;
-    const bLength = Math.hypot(bx, by) || 1;
-    const cosine = Math.max(-1, Math.min(1, (ax * bx + ay * by) / (aLength * bLength)));
-    const turn = Math.acos(cosine);
-    if (turn > 0.62 && Math.min(aLength, bLength) > diagonal * 0.025) {
-      candidates.push({ index: i, point, turn });
+  let farthestIndex = 1;
+  let farthestDistance = 0;
+  for (let i = 1; i < count; i++) {
+    const distance = Math.hypot(loop[i].x - loop[0].x, loop[i].y - loop[0].y);
+    if (distance > farthestDistance) {
+      farthestDistance = distance;
+      farthestIndex = i;
     }
   }
 
-  const minSeparation = Math.max(3, Math.floor(count * 0.07));
-  const corners = [];
-  for (const candidate of candidates) {
-    const previous = corners[corners.length - 1];
-    if (!previous || candidate.index - previous.index >= minSeparation) corners.push(candidate);
-    else if (candidate.turn > previous.turn) corners[corners.length - 1] = candidate;
-  }
-  if (corners.length > 1 && count - corners[corners.length - 1].index + corners[0].index < minSeparation) {
-    if (corners[0].turn >= corners[corners.length - 1].turn) corners.pop();
-    else corners.shift();
-  }
+  const simplify = path => {
+    if (path.length <= 2) return path;
+    const firstPoint = path[0];
+    const lastPoint = path[path.length - 1];
+    const dx = lastPoint.x - firstPoint.x;
+    const dy = lastPoint.y - firstPoint.y;
+    const length = Math.hypot(dx, dy) || 1;
+    let maximum = 0;
+    let index = 0;
+    for (let i = 1; i < path.length - 1; i++) {
+      const point = path[i];
+      const distance = Math.abs(dy * point.x - dx * point.y + lastPoint.x * firstPoint.y - lastPoint.y * firstPoint.x) / length;
+      if (distance > maximum) {
+        maximum = distance;
+        index = i;
+      }
+    }
+    if (maximum <= diagonal * 0.055 || index === 0) return [firstPoint, lastPoint];
+    const leftPath = simplify(path.slice(0, index + 1));
+    const rightPath = simplify(path.slice(index));
+    return [...leftPath.slice(0, -1), ...rightPath];
+  };
+
+  const arcA = loop.slice(0, farthestIndex + 1);
+  const arcB = [...loop.slice(farthestIndex), loop[0]];
+  const corners = [
+    ...simplify(arcA).slice(0, -1),
+    ...simplify(arcB).slice(0, -1)
+  ];
 
   if (corners.length === 3) return { type: "triangle" };
   if (corners.length === 4 || corners.length === 5) return { type: "rectangle" };
