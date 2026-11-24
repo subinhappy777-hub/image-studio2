@@ -157,6 +157,8 @@ function getCurrentState() {
     imageData: imageToData(state.image),
 
     imageScale: state.imageScale,
+    imageScaleX: state.imageScaleX ?? 1,
+    imageScaleY: state.imageScaleY ?? 1,
 
     imageX: state.imageX,
     imageY: state.imageY,
@@ -171,7 +173,9 @@ function getCurrentState() {
     splitImageTransforms: (state.splitImageTransforms || []).map(transform => ({
       x: transform?.x ?? 50,
       y: transform?.y ?? 50,
-      scale: transform?.scale ?? 1
+      scale: transform?.scale ?? 1,
+      scaleX: transform?.scaleX ?? 1,
+      scaleY: transform?.scaleY ?? 1
     }))
   };
 }
@@ -288,6 +292,12 @@ export async function loadTemplate(id) {
         y: Number.isFinite(transform?.y) ? transform.y : 50,
         scale: Number.isFinite(transform?.scale)
           ? Math.min(3, Math.max(0.2, transform.scale))
+          : 1,
+        scaleX: Number.isFinite(transform?.scaleX)
+          ? Math.min(2.5, Math.max(0.3, transform.scaleX))
+          : 1,
+        scaleY: Number.isFinite(transform?.scaleY)
+          ? Math.min(2.5, Math.max(0.3, transform.scaleY))
           : 1
       };
     });
@@ -358,6 +368,12 @@ export async function loadTemplate(id) {
       Number.isFinite(template.imageScale)
         ? template.imageScale
         : 1;
+    state.imageScaleX = Number.isFinite(template.imageScaleX)
+      ? Math.min(2.5, Math.max(0.3, template.imageScaleX))
+      : 1;
+    state.imageScaleY = Number.isFinite(template.imageScaleY)
+      ? Math.min(2.5, Math.max(0.3, template.imageScaleY))
+      : 1;
 
     state.imageX =
       Number.isFinite(template.imageX)
@@ -402,7 +418,11 @@ export async function loadTemplate(id) {
     $("imageScale").value = String(
       Math.round(state.imageScale * 100)
     );
+    $("imageWidthScale").value = String(Math.round(state.imageScaleX * 100));
+    $("imageHeightScale").value = String(Math.round(state.imageScaleY * 100));
     $("imageScale").disabled = !image && !paddedSplitImages.some(Boolean);
+    $("imageWidthScale").disabled = !image && !paddedSplitImages.some(Boolean);
+    $("imageHeightScale").disabled = !image && !paddedSplitImages.some(Boolean);
 
     // 이미지 업로드 안내 표시 여부
     $("uploadPlaceholder").style.display =
