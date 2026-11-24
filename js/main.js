@@ -62,6 +62,8 @@ function snapshot() {
     imageScale: state.imageScale,
     imageScaleX: state.imageScaleX,
     imageScaleY: state.imageScaleY,
+    imageFit: state.imageFit,
+    imageRotation: state.imageRotation,
 
     background: state.background,
     frameType: state.frameType || "none",
@@ -95,6 +97,9 @@ function undo() {
 
   state.selectedTextId = null;
   state.selectedStickerId = null;
+  state.imageSelected = false;
+  state.selectedSplitImageIndex = null;
+  selectedSplitSlotIndex = null;
 
   // ★ 이미지/화면비 설정 복원 + UI 동기화
   $("aspectRatio").value = state.aspectRatio;
@@ -102,6 +107,7 @@ function undo() {
     String(Math.round(getSelectedImageScale() * 100));
   $("imageWidthScale").value = String(Math.round(getSelectedImageAxisScale("X") * 100));
   $("imageHeightScale").value = String(Math.round(getSelectedImageAxisScale("Y") * 100));
+  $("imageFit").value = state.imageFit || "cover";
 
   $("bgColor").value = state.background;
   $("frameType").value = state.frameType || "none";
@@ -186,6 +192,7 @@ document.querySelectorAll(".tool-btn").forEach(button => {
     }
 
     activeTool = tool;
+    state.imageEditing = tool === "image";
 
     document.querySelectorAll(".tool-btn").forEach(btn => {
       const isSelected = btn === button;
@@ -215,6 +222,7 @@ document.querySelectorAll(".tool-btn").forEach(button => {
     }
 
     if (typeof splitOverlay !== "undefined") syncSplitLayoutUI();
+    render();
 
     setStatus(
       `"${button.querySelector("span").textContent}" 도구가 활성화되었습니다.`
@@ -791,7 +799,15 @@ function syncImageScaleControl() {
   $("imageHeightScale").disabled = !hasImage;
   $("imageHeightScale").value = String(Math.round(getSelectedImageAxisScale("Y") * 100));
   $("imageHeightScaleLabel").textContent = `${slotLabel}세로 늘이기`;
+  $("imageFit").disabled = isSplitMode();
+  $("imageFit").value = state.imageFit || "cover";
 }
+
+$("imageFit").addEventListener("change", e => {
+  remember();
+  state.imageFit = e.target.value === "contain" ? "contain" : "cover";
+  render();
+});
 
 bindUndoStart($("imageScale"), () =>
   isSplitMode()
@@ -957,6 +973,93 @@ $("zoomOutBtn").addEventListener("click", () => {
 // 15. 캔버스 마우스/터치 이벤트
 // ======================================
 
+function getImageRect(image, transform, slot = null) {
+  if (!image) return null;
+  const baseWidth = slot?.width ?? canvas.width;
+  const baseHeight = slot?.height ?? canvas.height;
+  const fit = slot
+    ? Math.max(baseWidth / image.naturalWidth, baseHeight / image.naturalHeight) * (transform.scale ?? 1)
+    : (state.imageFit === "contain"
+        ? Math.min(baseWidth / image.naturalWidth, baseHeight / image.naturalHeight)
+        : Math.max(baseWidth / image.naturalWidth, baseHeight / image.naturalHeight)) * state.imageScale;
+  return {
+    centerX: slot ? slot.x + slot.width * (transform.x ?? 50) / 100 : canvas.width * state.imageX / 100,
+    centerY: slot ? slot.y + slot.height * (transform.y ?? 50) / 100 : canvas.height * state.imageY / 100,
+    width: image.naturalWidth * fit * (transform.scaleX ?? 1),
+    height: image.naturalHeight * fit * (transform.scaleY ?? 1),
+    rotation: transform.rotation || 0
+  };
+}
+
+function imageLocalPoint(rect, x, y) {
+  const angle = -(rect.rotation || 0) * Math.PI / 180;
+  const dx = x - rect.centerX;
+  const dy = y - rect.centerY;
+  return {
+    x: dx * Math.cos(angle) - dy * Math.sin(angle),
+    y: dx * Math.sin(angle) + dy * Math.cos(angle)
+  };
+}
+
+function getImageInteraction(rect, x, y, slot = null) {
+  const local = imageLocalPoint(rect, x, y);
+  const handleOffset = Math.max(26, Math.min(42, Math.min(rect.width, rect.height) * 0.14));
+  const threshold = Math.max(18, canvas.width * 0.018);
+  const radius = Math.max(7, Math.min(11, canvas.width / 110));
+  const region = slot || { x: 0, y: 0, width: canvas.width, height: canvas.height };
+  const angle = rect.rotation * Math.PI / 180;
+  const clampPoint = (pointX, pointY) => [
+    Math.max(region.x + radius, Math.min(region.x + region.width - radius, pointX)),
+    Math.max(region.y + radius, Math.min(region.y + region.height - radius, pointY))
+  ];
+  const toWorld = (lx, ly) => clampPoint(
+    rect.centerX + lx * Math.cos(angle) - ly * Math.sin(angle),
+    rect.centerY + lx * Math.sin(angle) + ly * Math.cos(angle)
+  );
+
+  const rotationHandle = toWorld(0, -rect.height / 2 - handleOffset);
+  if (Math.hypot(x - rotationHandle[0], y - rotationHandle[1]) <= threshold) {
+    return { kind: "rotate" };
+  }
+
+  const corners = [
+    [-rect.width / 2, -rect.height / 2],
+    [rect.width / 2, -rect.height / 2],
+    [rect.width / 2, rect.height / 2],
+    [-rect.width / 2, rect.height / 2]
+  ];
+  for (const [cornerX, cornerY] of corners) {
+    const handle = toWorld(cornerX, cornerY);
+    if (Math.hypot(x - handle[0], y - handle[1]) <= threshold) {
+      return { kind: "resize", handleLocal: [cornerX, cornerY] };
+    }
+  }
+
+  if (Math.abs(local.x) <= rect.width / 2 && Math.abs(local.y) <= rect.height / 2) {
+    return { kind: "move" };
+  }
+  return null;
+}
+
+function createImageDrag(interaction, rect, target, x, y, slot = null) {
+  const angle = Math.atan2(y - rect.centerY, x - rect.centerX);
+  return {
+    type: "imageTransform",
+    kind: interaction.kind,
+    rect,
+    target,
+    slot,
+    startX: x,
+    startY: y,
+    startAngle: angle,
+    startRotation: rect.rotation || 0,
+    startScale: target.scale ?? state.imageScale,
+    startDistance: Math.max(1, Math.hypot(...(interaction.handleLocal || [x - rect.centerX, y - rect.centerY]))),
+    offsetX: x - rect.centerX,
+    offsetY: y - rect.centerY
+  };
+}
+
 canvas.addEventListener("pointerdown", event => {
   if (event.button !== 0) return;
 
@@ -1051,47 +1154,63 @@ canvas.addEventListener("pointerdown", event => {
     return;
   }
 
-  // 이미지 도구
+  // 이미지 도구: 사진 본체 이동, 모서리 크기 조절, 상단 손잡이 회전
   if (activeTool === "image") {
+    const px = point.x * canvas.width / 100;
+    const py = point.y * canvas.height / 100;
+
     if (isSplitMode()) {
       const slot = getSplitSlotAt(point);
-      if (slot && state.splitImages[slot.index]) {
-        selectedSplitSlotIndex = slot.index;
-        syncSplitLayoutUI();
-        syncImageScaleControl();
-        remember();
-
-        const transform = state.splitImageTransforms[slot.index];
-        const centerX = slot.x + slot.width * transform.x / 100;
-        const centerY = slot.y + slot.height * transform.y / 100;
-        drag = {
-          type: "splitImage",
-          target: transform,
-          slot,
-          startX: point.x,
-          startY: point.y,
-          moved: false,
-          offsetX: point.x * canvas.width / 100 - centerX,
-          offsetY: point.y * canvas.height / 100 - centerY
-        };
-
-        canvas.setPointerCapture(event.pointerId);
-        canvas.style.cursor = "grabbing";
+      if (!slot || !state.splitImages[slot.index]) {
+        selectedSplitSlotIndex = null;
+        state.selectedSplitImageIndex = null;
+        state.imageSelected = false;
         render();
+        syncImageScaleControl();
+        return;
       }
-      return;
+
+      selectedSplitSlotIndex = slot.index;
+      state.selectedSplitImageIndex = slot.index;
+      state.imageSelected = false;
+      const target = state.splitImageTransforms[slot.index];
+      const rect = getImageRect(state.splitImages[slot.index], target, slot);
+      const interaction = getImageInteraction(rect, px, py, slot);
+      syncSplitLayoutUI();
+      syncImageScaleControl();
+
+      if (!interaction) {
+        render();
+        return;
+      }
+      remember();
+      drag = createImageDrag(interaction, rect, target, px, py, slot);
+    } else {
+      if (!state.image) return;
+      const target = {
+        x: state.imageX,
+        y: state.imageY,
+        scale: state.imageScale,
+        rotation: state.imageRotation,
+        scaleX: state.imageScaleX,
+        scaleY: state.imageScaleY
+      };
+      const rect = getImageRect(state.image, target);
+      const interaction = getImageInteraction(rect, px, py);
+      if (!interaction) {
+        state.imageSelected = false;
+        render();
+        return;
+      }
+      state.imageSelected = true;
+      state.selectedSplitImageIndex = null;
+      remember();
+      drag = createImageDrag(interaction, rect, target, px, py);
     }
 
-    if (state.image) {
-      remember();
-      drag = {
-        type: "image",
-        offsetX: point.x - state.imageX,
-        offsetY: point.y - state.imageY
-      };
-      canvas.setPointerCapture(event.pointerId);
-      canvas.style.cursor = "grabbing";
-    }
+    canvas.setPointerCapture(event.pointerId);
+    canvas.style.cursor = drag.kind === "move" ? "grabbing" : drag.kind === "rotate" ? "crosshair" : "nwse-resize";
+    render();
     return;
   }
 });
@@ -1131,9 +1250,30 @@ canvas.addEventListener("pointermove", event => {
   } else if (drag.type === "sticker") {
     drag.target.x = point.x - drag.offsetX;
     drag.target.y = point.y - drag.offsetY;
-  } else if (drag.type === "image") {
-    state.imageX = point.x - drag.offsetX;
-    state.imageY = point.y - drag.offsetY;
+  } else if (drag.type === "imageTransform") {
+    const px = point.x * canvas.width / 100;
+    const py = point.y * canvas.height / 100;
+    if (drag.kind === "move") {
+      if (drag.slot) {
+        drag.target.x = Math.max(0, Math.min(100, (px - drag.offsetX - drag.slot.x) / drag.slot.width * 100));
+        drag.target.y = Math.max(0, Math.min(100, (py - drag.offsetY - drag.slot.y) / drag.slot.height * 100));
+      } else {
+        state.imageX = Math.max(-50, Math.min(150, point.x - drag.offsetX));
+        state.imageY = Math.max(-50, Math.min(150, point.y - drag.offsetY));
+      }
+    } else if (drag.kind === "resize") {
+      const distance = Math.hypot(px - drag.rect.centerX, py - drag.rect.centerY);
+      const ratio = Math.max(0.2, Math.min(4, distance / drag.startDistance));
+      const nextScale = Math.max(0.2, Math.min(3, drag.startScale * ratio));
+      if (drag.slot) drag.target.scale = nextScale;
+      else state.imageScale = nextScale;
+    } else if (drag.kind === "rotate") {
+      const angle = Math.atan2(py - drag.rect.centerY, px - drag.rect.centerX);
+      const delta = (angle - drag.startAngle) * 180 / Math.PI;
+      const rotation = ((drag.startRotation + delta + 180) % 360 + 360) % 360 - 180;
+      if (drag.slot) drag.target.rotation = rotation;
+      else state.imageRotation = rotation;
+    }
   } else if (drag.type === "splitImage") {
     const distance = Math.hypot(
       (point.x - drag.startX) * canvas.width / 100,
@@ -1163,6 +1303,8 @@ function stopDrag(event, commitStroke = false) {
     if (drag.target.autoShape) {
       drag.target.shape = recognizeShape(drag.target);
     }
+    render();
+  } else if (drag?.type === "imageTransform") {
     render();
   }
   drag = null;
@@ -1312,7 +1454,7 @@ $("jsonFileInput")?.addEventListener("change", e => {
 });
 
 $("btnOutput").addEventListener("click", () => {
-  render();
+  render({ showControls: false });
 
   const format =
     $("outputFormat")?.value || "image/png";
@@ -1326,6 +1468,7 @@ $("btnOutput").addEventListener("click", () => {
 
   canvas.toBlob(
     blob => {
+      render();
       if (!blob) {
         setStatus("파일 생성 실패", true);
         return;
@@ -1376,9 +1519,11 @@ function setLayout(layout) {
   state.splitImages = Array(9).fill(null);
   state.splitImageTransforms = Array.from(
     { length: 9 },
-    () => ({ x: 50, y: 50, scale: 1, scaleX: 1, scaleY: 1 })
+    () => ({ x: 50, y: 50, scale: 1, scaleX: 1, scaleY: 1, rotation: 0 })
   );
   selectedSplitSlotIndex = null;
+  state.selectedSplitImageIndex = null;
+  state.imageSelected = false;
 
   syncSplitLayoutUI();
   syncImageScaleControl();
@@ -1428,7 +1573,7 @@ function syncSplitLayoutUI() {
 
   if (layout === 1) {
     splitOverlay.style.display = "none";
-    uploadPlaceholder.style.display = "flex";
+    uploadPlaceholder.style.display = state.image ? "none" : "flex";
   } else {
     splitOverlay.style.display = "grid";
     uploadPlaceholder.style.display = "none";
@@ -1450,6 +1595,7 @@ function syncSplitLayoutUI() {
     btn.classList.toggle("selected", Number(btn.dataset.slot) === selectedSplitSlotIndex);
     btn.classList.toggle("filled", !!state.splitImages[Number(btn.dataset.slot)]);
   });
+  state.imageEditing = activeTool === "image";
   splitOverlay.classList.toggle("canvas-editing", ["image", "draw", "sticker"].includes(activeTool));
   splitOverlay.classList.toggle("image-editing", activeTool === "image");
 }
@@ -1465,6 +1611,7 @@ splitZoneBtns.forEach(btn => {
 
     currentSlotIndex = Number(btn.dataset.slot);
     selectedSplitSlotIndex = currentSlotIndex;
+    state.selectedSplitImageIndex = currentSlotIndex;
     syncSplitLayoutUI();
     syncImageScaleControl();
     slotFileInput.click();
@@ -1484,8 +1631,9 @@ slotFileInput?.addEventListener("change", e => {
     remember();
 
     state.splitImages[currentSlotIndex] = img;
-    state.splitImageTransforms[currentSlotIndex] = { x: 50, y: 50, scale: 1, scaleX: 1, scaleY: 1 };
+    state.splitImageTransforms[currentSlotIndex] = { x: 50, y: 50, scale: 1, scaleX: 1, scaleY: 1, rotation: 0 };
     selectedSplitSlotIndex = currentSlotIndex;
+    state.selectedSplitImageIndex = currentSlotIndex;
     syncSplitLayoutUI();
     syncImageScaleControl();
 
@@ -1513,6 +1661,8 @@ slotFileInput?.addEventListener("change", e => {
 
 document.addEventListener("splitLayoutChanged", () => {
   selectedSplitSlotIndex = null;
+  state.selectedSplitImageIndex = null;
+  state.imageSelected = false;
   syncSplitLayoutUI();
   syncImageScaleControl();
 });
@@ -1543,7 +1693,13 @@ function setPreviewMode(mode) {
 
 async function updatePreviewImage() {
   const requestId = ++previewRequestId;
-  const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+  render({ showControls: false });
+  let blob;
+  try {
+    blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+  } finally {
+    render();
+  }
   if (!blob || requestId !== previewRequestId) return;
 
   if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
@@ -1589,6 +1745,7 @@ document.addEventListener("keydown", event => {
 // ======================================
 
 $("frameType").value = state.frameType || "none";
+$("imageFit").value = state.imageFit || "cover";
 updateFrameControls();
 updateGradientControls();
 syncImageScaleControl();
