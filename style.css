@@ -1102,3 +1102,26 @@ textarea:focus-visible {
     font-size: 12px;
   }
 }
+
+
+.speech-style-controls {
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid #dbe3f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.speech-style-controls h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.speech-style-controls[hidden] {
+  display: none;
+}
+
+.speech-style-controls select {
+  width: 100%;
+  margin-bottom: 8px;
+}
