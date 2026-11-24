@@ -143,6 +143,9 @@ export async function handleFile(file, onBeforeApply = null) {
     state.imageScale = 1;
     state.imageScaleX = 1;
     state.imageScaleY = 1;
+    state.imageRotation = 0;
+    state.imageSelected = false;
+    state.selectedSplitImageIndex = null;
     state.imageX = 50;
     state.imageY = 50;
 
