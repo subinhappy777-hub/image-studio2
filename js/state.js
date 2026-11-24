@@ -4,6 +4,11 @@
 
 export const state = {
   image: null,
+  imageFit: "cover",
+  imageRotation: 0,
+  imageSelected: false,
+  imageEditing: false,
+  selectedSplitImageIndex: null,
   aspectRatio: "1:1",
   zoomLevel: 1,
 
@@ -28,7 +33,7 @@ export const state = {
 
   splitLayout: 1,
   splitImages: Array(9).fill(null),
-  splitImageTransforms: Array.from({ length: 9 }, () => ({ x: 50, y: 50, scale: 1, scaleX: 1, scaleY: 1 }))
+  splitImageTransforms: Array.from({ length: 9 }, () => ({ x: 50, y: 50, scale: 1, scaleX: 1, scaleY: 1, rotation: 0 }))
 };
 
 // ======================================
@@ -94,10 +99,8 @@ export function updateCanvasSize() {
   const stage = document.querySelector(".canvas-stage");
 
   const availableWidth = Math.max(120, stage.clientWidth - 32);
-  const availableHeight = Math.max(
-    160,
-    Math.min(510, window.innerHeight * 0.58)
-  );
+  const stageHeight = stage.clientHeight || Math.min(510, window.innerHeight * 0.58);
+  const availableHeight = Math.max(120, stageHeight - 32);
 
   const scale =
     Math.min(availableWidth / width, availableHeight / height) *
@@ -582,77 +585,165 @@ function drawBackground() {
 // 9. 이미지 그리기
 // ======================================
 
+function getSplitGeometry(index) {
+  const width = canvas.width;
+  const height = canvas.height;
+  const cols = state.splitLayout === 9 ? 3 : 2;
+  const rows = state.splitLayout === 2 ? 1 : cols;
+  const gap = state.splitLayout === 9 ? 6 : 10;
+  const cellWidth = (width - gap * (cols - 1)) / cols;
+  const cellHeight = (height - gap * (rows - 1)) / rows;
+  const row = Math.floor(index / cols);
+  const col = index % cols;
+  return {
+    x: col * (cellWidth + gap),
+    y: row * (cellHeight + gap),
+    width: cellWidth,
+    height: cellHeight
+  };
+}
+
+function getImageDisplayGeometry(image, target, splitSlot = null) {
+  if (!image) return null;
+  const baseWidth = splitSlot?.width ?? canvas.width;
+  const baseHeight = splitSlot?.height ?? canvas.height;
+  const fit = splitSlot
+    ? Math.max(baseWidth / image.naturalWidth, baseHeight / image.naturalHeight) * (target.scale ?? 1)
+    : (state.imageFit === "contain"
+        ? Math.min(baseWidth / image.naturalWidth, baseHeight / image.naturalHeight)
+        : Math.max(baseWidth / image.naturalWidth, baseHeight / image.naturalHeight)) * state.imageScale;
+  const width = image.naturalWidth * fit * (target.scaleX ?? 1);
+  const height = image.naturalHeight * fit * (target.scaleY ?? 1);
+  const centerX = splitSlot
+    ? splitSlot.x + splitSlot.width * (target.x ?? 50) / 100
+    : canvas.width * state.imageX / 100;
+  const centerY = splitSlot
+    ? splitSlot.y + splitSlot.height * (target.y ?? 50) / 100
+    : canvas.height * state.imageY / 100;
+  return { centerX, centerY, width, height, rotation: target.rotation || 0 };
+}
+
 function drawImage() {
   const width = canvas.width;
   const height = canvas.height;
 
   if ([2, 4, 9].includes(state.splitLayout)) {
-    const cols = state.splitLayout === 9 ? 3 : 2;
-    const rows = state.splitLayout === 2 ? 1 : cols;
-    const gap = state.splitLayout === 9 ? 6 : 10;
+    for (let index = 0; index < state.splitImages.length; index++) {
+      const img = state.splitImages[index];
+      if (!img) continue;
+      const slot = getSplitGeometry(index);
+      const transform = state.splitImageTransforms?.[index] || { x: 50, y: 50, scale: 1 };
+      const rect = getImageDisplayGeometry(img, transform, slot);
 
-    const pieceW = (width - gap * (cols - 1)) / cols;
-    const pieceH = (height - gap * (rows - 1)) / rows;
-
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const index = r * cols + c;
-        const img = state.splitImages[index];
-        const transform = state.splitImageTransforms?.[index] || { x: 50, y: 50, scale: 1 };
-
-        const dx = c * (pieceW + gap);
-        const dy = r * (pieceH + gap);
-
-        if (!img) continue;
-
-        const fit = Math.max(
-          pieceW / img.naturalWidth,
-          pieceH / img.naturalHeight
-        ) * (Number.isFinite(transform.scale) ? transform.scale : 1);
-        const imageWidth = img.naturalWidth * fit * (Number.isFinite(transform.scaleX) ? transform.scaleX : 1);
-        const imageHeight = img.naturalHeight * fit * (Number.isFinite(transform.scaleY) ? transform.scaleY : 1);
-        const centerX = dx + pieceW * (Number.isFinite(transform.x) ? transform.x : 50) / 100;
-        const centerY = dy + pieceH * (Number.isFinite(transform.y) ? transform.y : 50) / 100;
-
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(dx, dy, pieceW, pieceH);
-        ctx.clip();
-        ctx.drawImage(
-          img,
-          centerX - imageWidth / 2,
-          centerY - imageHeight / 2,
-          imageWidth,
-          imageHeight
-        );
-        ctx.restore();
-      }
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(slot.x, slot.y, slot.width, slot.height);
+      ctx.clip();
+      ctx.translate(rect.centerX, rect.centerY);
+      ctx.rotate(rect.rotation * Math.PI / 180);
+      ctx.drawImage(img, -rect.width / 2, -rect.height / 2, rect.width, rect.height);
+      ctx.restore();
     }
-
     return;
   }
 
   if (!state.image) return;
-
-  const img = state.image;
-
-  const fit =
-    Math.min(
-      width / img.naturalWidth,
-      height / img.naturalHeight
-    ) * state.imageScale;
-
-  const imageWidth = img.naturalWidth * fit * (Number.isFinite(state.imageScaleX) ? state.imageScaleX : 1);
-  const imageHeight = img.naturalHeight * fit * (Number.isFinite(state.imageScaleY) ? state.imageScaleY : 1);
-
-  const x = width * state.imageX / 100 - imageWidth / 2;
-  const y = height * state.imageY / 100 - imageHeight / 2;
+  const rect = getImageDisplayGeometry(state.image, {
+    scaleX: state.imageScaleX,
+    scaleY: state.imageScaleY,
+    rotation: state.imageRotation
+  });
 
   ctx.save();
   ctx.beginPath();
   ctx.rect(0, 0, width, height);
   ctx.clip();
-  ctx.drawImage(img, x, y, imageWidth, imageHeight);
+  ctx.translate(rect.centerX, rect.centerY);
+  ctx.rotate(rect.rotation * Math.PI / 180);
+  ctx.drawImage(state.image, -rect.width / 2, -rect.height / 2, rect.width, rect.height);
+  ctx.restore();
+}
+
+function drawImageSelectionControls() {
+  if (!state.imageEditing) return;
+
+  let rect = null;
+  let slot = null;
+  if ([2, 4, 9].includes(state.splitLayout)) {
+    const index = state.selectedSplitImageIndex;
+    if (index === null || index === undefined || !state.splitImages[index]) return;
+    slot = getSplitGeometry(index);
+    rect = getImageDisplayGeometry(
+      state.splitImages[index],
+      state.splitImageTransforms[index],
+      slot
+    );
+  } else {
+    if (!state.imageSelected || !state.image) return;
+    rect = getImageDisplayGeometry(state.image, {
+      scaleX: state.imageScaleX,
+      scaleY: state.imageScaleY,
+      rotation: state.imageRotation
+    });
+  }
+
+  const handleOffset = Math.max(26, Math.min(42, Math.min(rect.width, rect.height) * 0.14));
+  const handleRadius = Math.max(7, Math.min(11, canvas.width / 110));
+  const corners = [
+    [-rect.width / 2, -rect.height / 2],
+    [rect.width / 2, -rect.height / 2],
+    [rect.width / 2, rect.height / 2],
+    [-rect.width / 2, rect.height / 2]
+  ];
+  const angle = rect.rotation * Math.PI / 180;
+  const region = slot || { x: 0, y: 0, width: canvas.width, height: canvas.height };
+  const clampHandle = ([x, y]) => [
+    Math.max(region.x + handleRadius, Math.min(region.x + region.width - handleRadius, x)),
+    Math.max(region.y + handleRadius, Math.min(region.y + region.height - handleRadius, y))
+  ];
+  const toWorld = (x, y) => [
+    rect.centerX + x * Math.cos(angle) - y * Math.sin(angle),
+    rect.centerY + x * Math.sin(angle) + y * Math.cos(angle)
+  ];
+  const cornerPoints = corners.map(([x, y]) => clampHandle(toWorld(x, y)));
+  const rotationAnchor = clampHandle(toWorld(0, -rect.height / 2));
+  const rotationHandle = clampHandle(toWorld(0, -rect.height / 2 - handleOffset));
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(region.x, region.y, region.width, region.height);
+  ctx.clip();
+  ctx.translate(rect.centerX, rect.centerY);
+  ctx.rotate(angle);
+  ctx.strokeStyle = "#1681ff";
+  ctx.lineWidth = Math.max(2, canvas.width / 500);
+  ctx.setLineDash([8, 5]);
+  ctx.strokeRect(-rect.width / 2, -rect.height / 2, rect.width, rect.height);
+  ctx.restore();
+
+  ctx.save();
+  ctx.strokeStyle = "#1681ff";
+  ctx.lineWidth = Math.max(2, canvas.width / 500);
+  ctx.beginPath();
+  ctx.moveTo(rotationAnchor[0], rotationAnchor[1]);
+  ctx.lineTo(rotationHandle[0], rotationHandle[1]);
+  ctx.stroke();
+
+  for (const [x, y] of cornerPoints) {
+    ctx.beginPath();
+    ctx.arc(x, y, handleRadius, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    ctx.strokeStyle = "#1681ff";
+    ctx.stroke();
+  }
+
+  ctx.beginPath();
+  ctx.arc(rotationHandle[0], rotationHandle[1], handleRadius + 1, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffffff";
+  ctx.fill();
+  ctx.strokeStyle = "#1681ff";
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -1284,7 +1375,7 @@ function drawFrame() {
 // 14. 전체 렌더링
 // ======================================
 
-export function render() {
+export function render(options = {}) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   drawBackground();
@@ -1293,4 +1384,5 @@ export function render() {
   drawStickers();
   drawTexts();
   drawFrame();
+  if (options.showControls !== false) drawImageSelectionControls();
 }
