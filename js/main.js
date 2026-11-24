@@ -60,6 +60,8 @@ function snapshot() {
     imageX: state.imageX,
     imageY: state.imageY,
     imageScale: state.imageScale,
+    imageScaleX: state.imageScaleX,
+    imageScaleY: state.imageScaleY,
 
     background: state.background,
     frameType: state.frameType || "none",
@@ -98,6 +100,8 @@ function undo() {
   $("aspectRatio").value = state.aspectRatio;
   $("imageScale").value =
     String(Math.round(getSelectedImageScale() * 100));
+  $("imageWidthScale").value = String(Math.round(getSelectedImageAxisScale("X") * 100));
+  $("imageHeightScale").value = String(Math.round(getSelectedImageAxisScale("Y") * 100));
 
   $("bgColor").value = state.background;
   $("frameType").value = state.frameType || "none";
@@ -339,6 +343,9 @@ function renderStickerPanel() {
 
   const categories = [
     { key: "animal", title: "동물 귀/수염" },
+    { key: "crown", title: "👑 왕관" },
+    { key: "glasses", title: "👓 안경" },
+    { key: "sunglasses", title: "😎 선글라스" },
     { key: "speech", title: "💬 유행어 말풍선" },
     { key: "emoji", title: "기본 이모지" },
     { key: "custom", title: "🎨 내 스티커" }
@@ -389,6 +396,7 @@ function renderStickerPanel() {
 
       btn.addEventListener("click", () => {
         selectedStickerData = item;
+        $("speechStyleControls").hidden = item.kind !== "speech";
 
         state.selectedStickerId = null;
 
@@ -492,6 +500,9 @@ function addSticker(x, y) {
     sticker.emoji = selectedStickerData.emoji;
   } else if (selectedStickerData.kind === "speech") {
     sticker.text = selectedStickerData.text;
+    sticker.speechShape = $("speechShape").value;
+    sticker.speechFill = $("speechFill").value;
+    sticker.speechOutline = $("speechOutline").checked;
   } else if (selectedStickerData.kind === "image") {
     sticker.src = selectedStickerData.src;
   }
@@ -511,7 +522,17 @@ function pickSticker(x, y) {
   return [...state.stickers].reverse().find(sticker => {
     const cx = (Number(sticker.x) || 0) * canvas.width / 100;
     const cy = (Number(sticker.y) || 0) * canvas.height / 100;
-    const half = (Number(sticker.size) || 120) / 2;
+    const size = Number(sticker.size) || 120;
+    let halfWidth = size / 2;
+    let halfHeight = size / 2;
+    if (sticker.kind === "speech") {
+      const textWidth = String(sticker.text || "").length * size * 0.2;
+      halfWidth = Math.max(halfWidth, (textWidth + size * 0.4) / 2);
+      halfHeight = Math.max(halfHeight, size * 0.4);
+      if ((sticker.speechShape || "rounded") === "circle") {
+        halfWidth = halfHeight = Math.max(halfWidth, halfHeight);
+      }
+    }
 
     // 클릭 좌표를 스티커 회전의 역방향으로 회전
     const rad = -(Number(sticker.rotation) || 0) * Math.PI / 180;
@@ -521,8 +542,8 @@ function pickSticker(x, y) {
     const localY = dx * Math.sin(rad) + dy * Math.cos(rad);
 
     return (
-      Math.abs(localX) <= half &&
-      Math.abs(localY) <= half
+      Math.abs(localX) <= halfWidth &&
+      Math.abs(localY) <= halfHeight
     );
   });
 }
@@ -575,6 +596,21 @@ $("stickerRotation")?.addEventListener("change", () => {
 
   setStatus("스티커를 회전했습니다.");
 });
+
+function updateSelectedSpeechStyle() {
+  const sticker = state.stickers.find(item => item.id === state.selectedStickerId);
+  if (!sticker || sticker.kind !== "speech") return;
+
+  remember();
+  sticker.speechShape = $("speechShape").value;
+  sticker.speechFill = $("speechFill").value;
+  sticker.speechOutline = $("speechOutline").checked;
+  render();
+}
+
+$("speechShape").addEventListener("change", updateSelectedSpeechStyle);
+$("speechFill").addEventListener("change", updateSelectedSpeechStyle);
+$("speechOutline").addEventListener("change", updateSelectedSpeechStyle);
 
 $("deleteStickerBtn").addEventListener("click", () => {
   if (!state.selectedStickerId) {
@@ -732,17 +768,29 @@ function getSelectedImageScale() {
   return state.imageScale;
 }
 
+function getSelectedImageAxisScale(axis) {
+  if (isSplitMode() && selectedSplitSlotIndex !== null) {
+    return state.splitImageTransforms?.[selectedSplitSlotIndex]?.[`scale${axis}`] ?? 1;
+  }
+  return state[`imageScale${axis}`] ?? 1;
+}
+
 function syncImageScaleControl() {
-  const input = $("imageScale");
-  const label = $("imageScaleLabel");
   const hasSplitSelection = isSplitMode() && selectedSplitSlotIndex !== null && !!state.splitImages[selectedSplitSlotIndex];
   const hasImage = hasSplitSelection || (!isSplitMode() && !!state.image);
+  const slotLabel = hasSplitSelection ? `${selectedSplitSlotIndex + 1}번 칸 ` : "";
 
-  input.disabled = !hasImage;
-  input.value = String(Math.round(getSelectedImageScale() * 100));
-  label.textContent = hasSplitSelection
-    ? `${selectedSplitSlotIndex + 1}번 칸 사진 크기`
-    : "사진 크기";
+  $("imageScale").disabled = !hasImage;
+  $("imageScale").value = String(Math.round(getSelectedImageScale() * 100));
+  $("imageScaleLabel").textContent = hasImage ? `${slotLabel}사진 크기` : "사진 크기";
+
+  $("imageWidthScale").disabled = !hasImage;
+  $("imageWidthScale").value = String(Math.round(getSelectedImageAxisScale("X") * 100));
+  $("imageWidthScaleLabel").textContent = `${slotLabel}가로 늘이기`;
+
+  $("imageHeightScale").disabled = !hasImage;
+  $("imageHeightScale").value = String(Math.round(getSelectedImageAxisScale("Y") * 100));
+  $("imageHeightScaleLabel").textContent = `${slotLabel}세로 늘이기`;
 }
 
 bindUndoStart($("imageScale"), () =>
@@ -759,6 +807,23 @@ $("imageScale").addEventListener("input", e => {
   }
   render();
 });
+
+for (const [axis, inputId] of [["X", "imageWidthScale"], ["Y", "imageHeightScale"]]) {
+  bindUndoStart($(inputId), () =>
+    isSplitMode()
+      ? selectedSplitSlotIndex !== null && !!state.splitImages[selectedSplitSlotIndex]
+      : !!state.image
+  );
+  $(inputId).addEventListener("input", e => {
+    const value = Number(e.target.value) / 100;
+    if (isSplitMode() && selectedSplitSlotIndex !== null && state.splitImages[selectedSplitSlotIndex]) {
+      state.splitImageTransforms[selectedSplitSlotIndex][`scale${axis}`] = value;
+    } else if (state.image) {
+      state[`imageScale${axis}`] = value;
+    }
+    render();
+  });
+}
 
 // ★ 프레임: select change 1회 기록
 $("frameType").addEventListener("change", e => {
@@ -964,6 +1029,12 @@ canvas.addEventListener("pointerdown", event => {
       $("stickerSize").value = String(sticker.size);
       $("stickerRotation").value =
         String(sticker.rotation || 0);
+      $("speechStyleControls").hidden = sticker.kind !== "speech";
+      if (sticker.kind === "speech") {
+        $("speechShape").value = sticker.speechShape || "rounded";
+        $("speechFill").value = sticker.speechFill || "white";
+        $("speechOutline").checked = sticker.speechOutline === true;
+      }
 
       drag = {
         type: "sticker",
@@ -997,6 +1068,9 @@ canvas.addEventListener("pointerdown", event => {
           type: "splitImage",
           target: transform,
           slot,
+          startX: point.x,
+          startY: point.y,
+          moved: false,
           offsetX: point.x * canvas.width / 100 - centerX,
           offsetY: point.y * canvas.height / 100 - centerY
         };
@@ -1061,10 +1135,17 @@ canvas.addEventListener("pointermove", event => {
     state.imageX = point.x - drag.offsetX;
     state.imageY = point.y - drag.offsetY;
   } else if (drag.type === "splitImage") {
+    const distance = Math.hypot(
+      (point.x - drag.startX) * canvas.width / 100,
+      (point.y - drag.startY) * canvas.height / 100
+    );
+    if (!drag.moved && distance < 4) return;
+    drag.moved = true;
+
     const pixelX = point.x * canvas.width - drag.offsetX;
     const pixelY = point.y * canvas.height - drag.offsetY;
-    drag.target.x = (pixelX - drag.slot.x) / drag.slot.width * 100;
-    drag.target.y = (pixelY - drag.slot.y) / drag.slot.height * 100;
+    drag.target.x = Math.max(0, Math.min(100, (pixelX - drag.slot.x) / drag.slot.width * 100));
+    drag.target.y = Math.max(0, Math.min(100, (pixelY - drag.slot.y) / drag.slot.height * 100));
   }
 
   render();
@@ -1092,11 +1173,11 @@ canvas.addEventListener("pointerup", event => stopDrag(event, true));
 canvas.addEventListener("pointercancel", event => stopDrag(event, false));
 
 function recognizeShape(stroke) {
-  const points = stroke.points.map(point => ({
+  const points = (stroke.points || []).map(point => ({
     x: point.x * canvas.width / 100,
     y: point.y * canvas.height / 100
   }));
-  if (points.length < 3) return null;
+  if (points.length < 2) return null;
 
   const bounds = points.reduce((box, point) => ({
     left: Math.min(box.left, point.x),
@@ -1107,74 +1188,83 @@ function recognizeShape(stroke) {
   const width = bounds.right - bounds.left;
   const height = bounds.bottom - bounds.top;
   const diagonal = Math.hypot(width, height);
-  if (diagonal < 10) return null;
+  if (diagonal < 8) return null;
 
   let pathLength = 0;
   for (let i = 1; i < points.length; i++) {
     pathLength += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
   }
+
   const first = points[0];
   const last = points[points.length - 1];
   const endpointDistance = Math.hypot(last.x - first.x, last.y - first.y);
 
-  if (endpointDistance / Math.max(pathLength, 1) > 0.78 && pathLength / diagonal < 1.2) {
+  // 짧고 곧은 선은 포인터 샘플이 적어도 인식합니다.
+  if (points.length === 2) return { type: "line" };
+  const lineLength = Math.max(endpointDistance, 1);
+  const maxLineDeviation = points.reduce((max, point) => {
+    const distance = Math.abs(
+      (last.y - first.y) * point.x -
+      (last.x - first.x) * point.y +
+      last.x * first.y - last.y * first.x
+    ) / lineLength;
+    return Math.max(max, distance);
+  }, 0);
+  if (endpointDistance / Math.max(pathLength, 1) > 0.76 && maxLineDeviation < diagonal * 0.13) {
     return { type: "line" };
   }
 
-  const closed = endpointDistance <= Math.max(12, diagonal * 0.2) && pathLength >= diagonal * 1.35;
+  const closed = endpointDistance <= Math.max(20, diagonal * 0.28) && pathLength >= diagonal * 1.15;
   if (!closed) return null;
+
+  const loop = endpointDistance <= diagonal * 0.28 ? points.slice(0, -1) : points;
+  if (loop.length < 5) return null;
 
   const centerX = (bounds.left + bounds.right) / 2;
   const centerY = (bounds.top + bounds.bottom) / 2;
   const radiusX = Math.max(width / 2, 1);
   const radiusY = Math.max(height / 2, 1);
-  const ellipseError = points.reduce((sum, point) => {
+  const ellipseError = loop.reduce((sum, point) => {
     const normalized = Math.hypot((point.x - centerX) / radiusX, (point.y - centerY) / radiusY);
     return sum + Math.abs(normalized - 1);
-  }, 0) / points.length;
+  }, 0) / loop.length;
+  if (ellipseError < 0.16) return { type: "ellipse" };
 
-  const simplify = (list, tolerance) => {
-    if (list.length <= 2) return list;
-    const start = list[0];
-    const end = list[list.length - 1];
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    const lengthSquared = dx * dx + dy * dy || 1;
-    let furthest = 0;
-    let furthestIndex = 0;
-    for (let i = 1; i < list.length - 1; i++) {
-      const point = list[i];
-      const projection = Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared));
-      const distance = Math.hypot(point.x - start.x - projection * dx, point.y - start.y - projection * dy);
-      if (distance > furthest) {
-        furthest = distance;
-        furthestIndex = i;
-      }
+  // 모서리 각도를 보며 손으로 그린 다각형에서 세 꼭짓점 또는 네 꼭짓점을 찾습니다.
+  const count = loop.length;
+  const windowSize = Math.max(2, Math.min(8, Math.floor(count / 28)));
+  const candidates = [];
+  for (let i = 0; i < count; i++) {
+    const before = loop[(i - windowSize + count) % count];
+    const point = loop[i];
+    const after = loop[(i + windowSize) % count];
+    const ax = point.x - before.x;
+    const ay = point.y - before.y;
+    const bx = after.x - point.x;
+    const by = after.y - point.y;
+    const aLength = Math.hypot(ax, ay) || 1;
+    const bLength = Math.hypot(bx, by) || 1;
+    const cosine = Math.max(-1, Math.min(1, (ax * bx + ay * by) / (aLength * bLength)));
+    const turn = Math.acos(cosine);
+    if (turn > 0.62 && Math.min(aLength, bLength) > diagonal * 0.025) {
+      candidates.push({ index: i, point, turn });
     }
-    if (furthest <= tolerance) return [start, end];
-    const left = simplify(list.slice(0, furthestIndex + 1), tolerance);
-    const right = simplify(list.slice(furthestIndex), tolerance);
-    return [...left.slice(0, -1), ...right];
-  };
+  }
 
-  const closedPoints = [...points, points[0]];
-  const corners = simplify(closedPoints, diagonal * 0.07).slice(0, -1);
+  const minSeparation = Math.max(3, Math.floor(count * 0.07));
+  const corners = [];
+  for (const candidate of candidates) {
+    const previous = corners[corners.length - 1];
+    if (!previous || candidate.index - previous.index >= minSeparation) corners.push(candidate);
+    else if (candidate.turn > previous.turn) corners[corners.length - 1] = candidate;
+  }
+  if (corners.length > 1 && count - corners[corners.length - 1].index + corners[0].index < minSeparation) {
+    if (corners[0].turn >= corners[corners.length - 1].turn) corners.pop();
+    else corners.shift();
+  }
+
   if (corners.length === 3) return { type: "triangle" };
-
-  if (corners.length >= 4 && corners.length <= 6) {
-    const cornerCoverage = [
-      { x: bounds.left, y: bounds.top },
-      { x: bounds.right, y: bounds.top },
-      { x: bounds.right, y: bounds.bottom },
-      { x: bounds.left, y: bounds.bottom }
-    ].every(corner => points.some(point => Math.hypot(point.x - corner.x, point.y - corner.y) <= diagonal * 0.24));
-    if (cornerCoverage) return { type: "rectangle" };
-  }
-
-  if (corners.length >= 5 && ellipseError < 0.22) {
-    return { type: "ellipse" };
-  }
-
+  if (corners.length === 4 || corners.length === 5) return { type: "rectangle" };
   return null;
 }
 
@@ -1277,7 +1367,7 @@ function setLayout(layout) {
   state.splitImages = Array(9).fill(null);
   state.splitImageTransforms = Array.from(
     { length: 9 },
-    () => ({ x: 50, y: 50, scale: 1 })
+    () => ({ x: 50, y: 50, scale: 1, scaleX: 1, scaleY: 1 })
   );
   selectedSplitSlotIndex = null;
 
@@ -1385,7 +1475,7 @@ slotFileInput?.addEventListener("change", e => {
     remember();
 
     state.splitImages[currentSlotIndex] = img;
-    state.splitImageTransforms[currentSlotIndex] = { x: 50, y: 50, scale: 1 };
+    state.splitImageTransforms[currentSlotIndex] = { x: 50, y: 50, scale: 1, scaleX: 1, scaleY: 1 };
     selectedSplitSlotIndex = currentSlotIndex;
     syncSplitLayoutUI();
     syncImageScaleControl();
